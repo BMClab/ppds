@@ -17,7 +17,7 @@ repository-code: "https://github.com/BMClab/ppds"
 url: "https://bmclab.github.io/ppds/"
 references:
   - type: data
-    title: "ppds: plantar pressure data set"
+    title: "PPDS: plantar pressure data set"
     authors:
       - family-names: Fukuchi
         given-names: Reginaldo
