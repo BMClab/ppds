@@ -19,9 +19,11 @@ references:
   - type: data
     title: "ppds: plantar pressure data set"
     authors:
-      - family-names: Duarte
-        given-names: Marcos
       - family-names: Fukuchi
         given-names: Reginaldo
+      - family-names: Fukuchi
+        given-names: Claudiane
+      - family-names: Duarte
+        given-names: Marcos
     version: "1.0.0"
     doi: "10.5281/zenodo.24432612"

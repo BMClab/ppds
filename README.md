@@ -2,7 +2,7 @@
 
 PPDS contains barefoot standing, walking and running plantar pressure recordings and 3D scans of both feet and lower legs from 95 adults. The BMClab at the Federal University of ABC collected the data with a Zebris FDM-1.5 platform and a Kinect sensor.
 
-**[Read the example notebooks](https://bmclab.github.io/ppds/examples/)** · **[Files, units and coordinates](data/README.md)** · **[Dataset and citation on Zenodo](https://doi.org/10.5281/zenodo.24432612)** · **[Source on GitHub](https://github.com/BMClab/ppds)**
+**[Read the example notebooks](https://bmclab.github.io/ppds/examples/)** · **[Files, units and coordinates](data/README.md)** · **[Dataset on Zenodo](https://doi.org/10.5281/zenodo.24432612)** · **[How to cite](#how-to-cite)** · **[Source on GitHub](https://github.com/BMClab/ppds)**
 
 ## Explore the dataset
 
@@ -41,3 +41,10 @@ Counts show participants, with trials, contacts or footprints in parentheses.
 Gait pressure is sampled at 100 Hz. Each standing recording contributes the final 10 seconds at 10 Hz. Pressure arrays use `(frame, y, x)`, with 353 × 64 sensors per frame. Each participant also has a left and a right foot and lower-leg mesh.
 
 The dataset is distributed under CC0 1.0 and the toolkit under the [MIT license](LICENSE).
+
+## How to cite
+
+Cite the dataset when you use the recordings or derived data. If you also use the Python toolkit or example notebooks, cite the software release alongside it.
+
+- **Dataset** — Fukuchi, R., Fukuchi, C., & Duarte, M. (2026). *ppds: plantar pressure data set* (v1.0.0). Zenodo. [10.5281/zenodo.24432612](https://doi.org/10.5281/zenodo.24432612)
+- **Software** — Duarte, M., & Fukuchi, R. K. (2026). *Python toolkit and example notebooks for the plantar pressure data set (PPDS)* (v0.1.0). Zenodo. [10.5281/zenodo.24490657](https://doi.org/10.5281/zenodo.24490657)
