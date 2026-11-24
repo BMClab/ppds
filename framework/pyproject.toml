@@ -6,9 +6,8 @@ readme = "src/reader_data/README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Reginaldo K. Fukuchi" },
-    { name = "Claudiane A. Fukuchi" },
     { name = "Marcos Duarte" },
+    { name = "Reginaldo K. Fukuchi" },
 ]
 requires-python = ">=3.12"
 dependencies = [
