@@ -11,12 +11,12 @@ The browser participant tables and scan selector cover all 95 participants. Pres
 To run locally, use `run` to interact with the notebook or `edit` to change its cells.
 
 ```bash
-uv run marimo run examples/participant_summary.py -- --zenodo 24432612
-uv run marimo run examples/exploration.py -- --zenodo 24432612
-uv run marimo run examples/scans.py -- --zenodo 24432612
+uv run marimo run examples/participant_summary.py
+uv run marimo run examples/exploration.py
+uv run marimo run examples/scans.py
 ```
 
-For any data-backed example, set `PPDS_DATA` to a downloaded release directory and omit the Zenodo argument. The conversion example uses its bundled synthetic recording. [Dataset on Zenodo](https://doi.org/10.5281/zenodo.24432612)
+Local runs use the release in `PPDS_DATA` or the checkout’s `data/` directory when available. Otherwise they read Zenodo record `24432612` automatically. To select that record even with a local release configured, append `-- --zenodo 24432612`. [Dataset on Zenodo](https://doi.org/10.5281/zenodo.24432612)
 
 | Notebook | What it shows |
 |---|---|

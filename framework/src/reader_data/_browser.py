@@ -57,14 +57,20 @@ class ReleaseFileSystem(AbstractFileSystem):
     protocol = "marimorelease"
     cachable = False
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # DuckDB can ask for the size before opening an unsized resource.
+        self._whole_file = lru_cache(maxsize=1)(_fetch)
+
     @classmethod
     def resource(cls, url, size):
-        return f"{cls.protocol}://{size or 0}/{quote(url, safe='')}"
+        length = "unknown" if size is None else str(size)
+        return f"{cls.protocol}://{length}/{quote(url, safe='')}"
 
     def info(self, path, **kwargs):
         name = self._strip_protocol(path)
         size, url = name.split("/", 1)
-        length = int(size) or len(_fetch(unquote(url)))
+        length = len(self._whole_file(unquote(url))) if size == "unknown" else int(size)
         return {"name": name, "size": length, "type": "file"}
 
     def modified(self, path):
@@ -75,4 +81,6 @@ class ReleaseFileSystem(AbstractFileSystem):
         if mode != "rb":
             raise ValueError("Release files are read-only")
         size, url = self._strip_protocol(path).split("/", 1)
-        return open_http(unquote(url), int(size) or None)
+        if size == "unknown":
+            return BytesIO(self._whole_file(unquote(url)))
+        return open_http(unquote(url), int(size))

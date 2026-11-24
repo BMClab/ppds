@@ -12,7 +12,7 @@ Open an example to see its saved results and Python code. Choose **Edit in brows
 git clone https://github.com/BMClab/ppds.git
 cd ppds
 uv sync --locked
-uv run marimo run examples/exploration.py -- --zenodo 24432612
+uv run marimo run examples/exploration.py
 ```
 
 Use the same release in Python to read a comfortable-walking trial, its pressure features and its peak-pressure map.

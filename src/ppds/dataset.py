@@ -53,7 +53,7 @@ def use_notebook(record=None, *, pressure_sample=False):
     """Select an explicit record, a local release, or the published PPDS showcase."""
     if record is not None:
         use_zenodo(record)
-    elif os.environ.get("PPDS_DATA") or (local_data_dir() / "metadata.json").is_file():
+    elif os.environ.get("PPDS_DATA", "").strip() or (local_data_dir() / "metadata.json").is_file():
         use_local()
     elif sys.platform == "emscripten" and pressure_sample:
         import marimo as mo

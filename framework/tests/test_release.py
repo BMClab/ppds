@@ -94,3 +94,27 @@ def test_browser_reader_reuses_byte_ranges_and_distinguishes_sources(tmp_path, m
                 assert stream.read() == b"PAR1"
     assert reads == [(url, 0, len(data)) for url, data in payloads.items()]
     _browser._block.cache_clear()
+
+
+@pytest.mark.parametrize("contents", [b"hello", b""])
+def test_unknown_size_browser_file_reuses_download(contents, monkeypatch):
+    from reader_data import _browser
+
+    reads = []
+
+    def fetch(url):
+        reads.append(url)
+        return contents
+
+    monkeypatch.setattr(_browser, "_fetch", fetch)
+    fs = _browser.ReleaseFileSystem()
+    url = "https://example.org/unknown"
+    path = fs.resource(url, None)
+    assert fs.info(path)["size"] == len(contents)
+    with fs.open(path) as first, fs.open(path) as second:
+        assert first.read() == second.read() == contents
+    empty = fs.resource("https://example.org/empty", 0)
+    assert fs.size(empty) == 0
+    with fs.open(empty) as stream:
+        assert stream.read() == b""
+    assert reads == [url]
