@@ -5,15 +5,12 @@ message: >-
   If you use the PPDS toolkit or notebooks, please cite this software.
   If you use the recordings or derived data, please also cite the Zenodo dataset listed below.
 authors:
-  - family-names: Fukuchi
-    given-names: Reginaldo K.
-    orcid: "https://orcid.org/0000-0003-3113-7715"
-  - family-names: Fukuchi
-    given-names: Claudiane A.
-    orcid: "https://orcid.org/0000-0001-7559-2491"
   - family-names: Duarte
     given-names: Marcos
     orcid: "https://orcid.org/0000-0002-0344-7460"
+  - family-names: Fukuchi
+    given-names: Reginaldo K.
+    orcid: "https://orcid.org/0000-0003-3113-7715"
 version: "0.1.0"
 license: MIT
 repository-code: "https://github.com/BMClab/ppds"
