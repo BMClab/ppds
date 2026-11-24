@@ -79,10 +79,10 @@ def test_browser_reader_reuses_byte_ranges_and_distinguishes_sources(tmp_path, m
 
     def fetch(url, start=None, stop=None):
         reads.append((url, start, stop))
-        return payloads[url][start:stop]
+        return 206, payloads[url][start:stop]
 
-    monkeypatch.setattr(_browser, "_fetch", fetch)
-    _browser._block.cache_clear()
+    monkeypatch.setattr(_browser, "_request", fetch)
+    _browser._blocks.clear()
     fs = _browser.ReleaseFileSystem()
     with duckdb.connect() as con:
         con.register_filesystem(fs)
@@ -93,7 +93,7 @@ def test_browser_reader_reuses_byte_ranges_and_distinguishes_sources(tmp_path, m
                 stream.seek(-4, 2)
                 assert stream.read() == b"PAR1"
     assert reads == [(url, 0, len(data)) for url, data in payloads.items()]
-    _browser._block.cache_clear()
+    _browser._blocks.clear()
 
 
 @pytest.mark.parametrize("contents", [b"hello", b""])
@@ -118,3 +118,47 @@ def test_unknown_size_browser_file_reuses_download(contents, monkeypatch):
     with fs.open(empty) as stream:
         assert stream.read() == b""
     assert reads == [url]
+
+
+@pytest.mark.parametrize("response", ["full", "partial", "short-full", "short-partial", "missing"])
+def test_browser_range_http_responses(response, monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    from reader_data import _browser
+
+    contents = bytes(range(31))
+    requests = []
+    monkeypatch.setattr(_browser, "BLOCK_SIZE", 8)
+
+    class Request:
+        def open(self, method, url, asynchronous):
+            assert (method, asynchronous) == ("GET", False)
+
+        def setRequestHeader(self, key, value):
+            assert key == "Range"
+            start, last = map(int, value.removeprefix("bytes=").split("-"))
+            self.part = slice(start, last + 1)
+
+        def send(self):
+            requests.append(self.part)
+            self.status = {"full": 200, "partial": 206, "short-full": 200,
+                           "short-partial": 206, "missing": 404}[response]
+            data = contents[self.part] if self.status == 206 else contents
+            self.response = memoryview(data[:-1] if response.startswith("short") else data)
+
+    js = SimpleNamespace(XMLHttpRequest=SimpleNamespace(new=Request),
+                         Uint8Array=SimpleNamespace(new=lambda data: SimpleNamespace(to_py=lambda: data)))
+    monkeypatch.setitem(sys.modules, "js", js)
+    with _browser.open_http(f"https://example.org/{response}", len(contents)) as stream:
+        assert stream._fetch_range(13, 13) == stream._fetch_range(13, 11) == b""
+        assert not requests
+        stream.seek(10)
+        if response in ("full", "partial"):
+            assert stream.read(12) == contents[10:22]
+            stream.seek(3)
+            assert stream.read(4) == contents[3:7]
+            assert len(requests) == (1 if response == "full" else 3)
+        else:
+            with pytest.raises(OSError):
+                stream.read(4)

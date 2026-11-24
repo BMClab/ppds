@@ -1,6 +1,7 @@
 """Segment and register individual footprint images."""
 
 from math import atan2, cos, pi, sin
+from operator import index
 
 import numpy as np
 from scipy import ndimage
@@ -9,18 +10,20 @@ from scipy import ndimage
 def segment(I, threshold=0, n_min=1, closing=0):
     """Label 8-connected pixels strictly above threshold, optionally closing the mask.
 
-    Closing can bridge gaps between components. Each returned image contains
-    only the original above-threshold pressures inside its labeled region.
+    Keep regions with at least n_min original above-threshold pixels.
+    closing is the number of closing iterations (zero skips closing). For
+    compatibility, boolean True uses two iterations. Pixels added by closing
+    connect regions but do not contribute to their size or pressure.
     """
+    iterations = 2 * int(closing) if isinstance(closing, (bool, np.bool_)) else index(closing)
+    if iterations < 0:
+        raise ValueError("closing must be a nonnegative number of iterations")
     s = ndimage.generate_binary_structure(2, 2)  # features connected even if they touch diagonally
     active = I > threshold
-    regions = ndimage.binary_closing(active, structure=s, iterations=2) if closing else active
-    L, n = ndimage.label(regions, structure=s)
-    II = [np.where((L == i) & active, I, 0) for i in range(1, n + 1)]
-    # remove small features
-    if n_min > 1:
-        II = [I for I in II if np.count_nonzero(I > threshold) > n_min]
-    return II
+    regions = ndimage.binary_closing(active, structure=s, iterations=iterations) if iterations else active
+    labels, n = ndimage.label(regions, structure=s)
+    counts = np.bincount(labels[active], minlength=n + 1)
+    return [np.where((labels == i) & active, I, 0) for i in range(1, n + 1) if counts[i] >= n_min]
 
 
 def foot_coordinates(I, threshold=0):

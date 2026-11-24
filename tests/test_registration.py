@@ -102,3 +102,29 @@ def test_registration_aligns_off_center_images_and_keeps_matching_ends(
     expected_end, _ = moments((target > 15).astype(float))
     actual_end, _ = moments((output > 15).astype(float))
     assert (actual_end - actual_center) @ (expected_end - expected_center) > 0
+
+
+@pytest.mark.parametrize("threshold", [-1, 0])
+@pytest.mark.parametrize(("minimum", "sizes"), [(1, [1, 2]), (2, [2]), (3, [])])
+def test_segment_minimum_counts_original_active_pixels(threshold, minimum, sizes):
+    image = np.full((8, 9), -2)
+    image[2, 2] = 5
+    image[4, 5] = image[5, 6] = 7
+    feet = reg.segment(image, threshold=threshold, n_min=minimum)
+    assert [np.count_nonzero(foot) for foot in feet] == sizes
+
+
+@pytest.mark.parametrize(("closing", "components"), [(0, 2), (1, 2), (2, 1), (True, 1)])
+def test_segment_closing_iterations(closing, components):
+    image = np.zeros((16, 24))
+    image[5:10, 4:8] = 5
+    image[5:10, 11:15] = 6
+    feet = reg.segment(image, closing=closing)
+    assert len(feet) == components
+    np.testing.assert_array_equal(np.sum(feet, axis=0), image)
+
+
+@pytest.mark.parametrize(("closing", "error"), [(-1, ValueError), (0.5, TypeError)])
+def test_segment_requires_nonnegative_integer_closing(closing, error):
+    with pytest.raises(error):
+        reg.segment(np.ones((5, 5)), closing=closing)

@@ -67,3 +67,43 @@ def _():
     with pytest.raises(CalledProcessError):
         build_pages.main()
     assert page.read_text() == updated
+
+
+def test_pages_preserves_exported_html_and_uses_main_for_an_empty_revision(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
+    from scripts import build_pages
+
+    examples = tmp_path / "examples"
+    examples.mkdir()
+    (examples / "demo.py").write_text("import marimo\napp = marimo.App()\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text("# Pressão · PPDS\n\n[License](LICENSE)", encoding="utf-8")
+    (tmp_path / "LICENSE").touch()
+    monkeypatch.setattr(build_pages, "ROOT", tmp_path)
+    monkeypatch.setattr(build_pages, "GUIDES", [Path("README.md")])
+    monkeypatch.setenv("GITHUB_SHA", "")
+    head = '<!-- <body> --><script>const literal = "</head><body>";</script>'
+    body = '<BODY\n data-title="≤ or >">'
+    payload = '<script>const literal = "<body>";</script>São Paulo'
+
+    def export(args, **kwargs):
+        Path(args[-1]).write_text(f"<html><head>{head}</head>{body}{payload}</body></html>", encoding="utf-8")
+
+    monkeypatch.setattr(build_pages.subprocess, "run", export)
+    site = tmp_path / "site"
+    build_pages.build(site)
+    guide = (site / "index.html").read_text(encoding="utf-8")
+    assert "Pressão" in guide and "/blob/main/LICENSE" in guide
+    for folder in ("edit", "notebooks"):
+        html = (site / folder / "demo.html").read_text(encoding="utf-8")
+        assert head in html and body + "<nav" in html and "</nav>" + payload in html
+    assert "/blob/main/examples/demo.py" in html
+
+
+def test_windows_paths_generate_portable_page_urls(monkeypatch):
+    from pathlib import PureWindowsPath
+
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
+    from scripts.build_pages import relative_url
+
+    site = PureWindowsPath("C:/Documents/PPDS")
+    assert relative_url(site / "notebooks/ação 1.html", site / "examples") == "../notebooks/a%C3%A7%C3%A3o%201.html"

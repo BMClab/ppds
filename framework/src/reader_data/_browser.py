@@ -1,5 +1,6 @@
 """Seekable HTTP reads in a Pyodide worker, including DuckDB's Python filesystem."""
 
+from collections import OrderedDict
 from datetime import UTC, datetime
 from functools import lru_cache
 from io import BytesIO
@@ -9,9 +10,11 @@ from fsspec import AbstractFileSystem
 from fsspec.spec import AbstractBufferedFile
 
 BLOCK_SIZE = 512 * 1024
+# At most 24 MiB shared across short-lived DuckDB connections in this worker.
+_blocks = OrderedDict()
 
 
-def _fetch(url, start=None, stop=None):
+def _request(url, start=None, stop=None):
     # The marimo kernel runs in a Web Worker. A synchronous request here gives
     # DuckDB and zipfile their normal seek/read interface without blocking the UI.
     from js import Uint8Array, XMLHttpRequest
@@ -22,27 +25,51 @@ def _fetch(url, start=None, stop=None):
     if start is not None:
         request.setRequestHeader("Range", f"bytes={start}-{stop - 1}")
     request.send()
-    if request.status != (200 if start is None else 206):
+    if request.status != 200 and not (start is not None and request.status == 206):
         raise OSError(f"HTTP {request.status} reading {url}")
     data = Uint8Array.new(request.response).to_py().tobytes()
-    if start is not None and len(data) != stop - start:
+    if request.status == 206 and len(data) != stop - start:
         raise OSError(f"Incomplete byte range from {url}")
-    return data
+    return request.status, data
 
 
-@lru_cache(maxsize=48)
-def _block(url, start, size):
-    return _fetch(url, start, min(start + BLOCK_SIZE, size))
+def _fetch(url):
+    return _request(url)[1]
 
 
 class RangeFile(AbstractBufferedFile):
+    _full_file = None
+
     def _fetch_range(self, start, end):
-        # Share aligned blocks across short-lived DuckDB connections. At most
-        # 24 MiB of release bytes are retained after readers close.
+        end = min(end, self.size)
+        if start >= end:
+            return b""
+        if self._full_file is not None:
+            return self._full_file[start:end]
         first = start // BLOCK_SIZE * BLOCK_SIZE
-        blocks = b"".join(_block(self.path, offset, self.size)
-                          for offset in range(first, end, BLOCK_SIZE))
-        return blocks[start - first:end - first]
+        blocks = []
+        for offset in range(first, end, BLOCK_SIZE):
+            key = (self.path, self.size, offset)
+            if key in _blocks:
+                _blocks.move_to_end(key)
+            else:
+                status, data = _request(self.path, offset, min(offset + BLOCK_SIZE, self.size))
+                if status == 200:
+                    # Some mirrors ignore Range. Retain large responses only on this reader.
+                    if len(data) != self.size:
+                        raise OSError(f"Unexpected full response size from {self.path}")
+                    if self.size > BLOCK_SIZE:
+                        self._full_file = data
+                        return data[start:end]
+                _blocks[key] = data
+                if len(_blocks) > 48:
+                    _blocks.popitem(last=False)
+            blocks.append(_blocks[key])
+        return b"".join(blocks)[start - first:end - first]
+
+    def close(self):
+        self._full_file = None
+        super().close()
 
 
 def open_http(url, size):

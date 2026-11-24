@@ -30,6 +30,8 @@ def pressure_player(pressure, frequency_hz, *, title, stance=False, first_frame=
     hz = float(rate)
     if not np.isfinite(hz) or hz <= 0:
         raise ValueError("Expected a positive sampling frequency")
+    if isinstance(first_frame, np.ndarray) and first_frame.ndim == 0 and not np.ma.is_masked(first_frame):
+        first_frame = first_frame[()]
     if (
         isinstance(first_frame, (bool, np.bool_))
         or not isinstance(first_frame, (int, np.integer))

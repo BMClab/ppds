@@ -30,5 +30,8 @@ references:
       - family-names: Duarte
         given-names: Marcos
         orcid: "https://orcid.org/0000-0002-0344-7460"
+    year: 2026
+    publisher:
+      name: Zenodo
     version: "1.0.0"
     doi: "10.5281/zenodo.24432612"

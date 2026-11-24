@@ -68,12 +68,13 @@ def test_unloaded_clip_has_a_clock(monkeypatch):
 
 def test_playback_uses_sampling_rate_from_npz(tmp_path, monkeypatch):
     path = tmp_path / "trial.npz"
-    np.savez(path, pressure=np.ones((2, 4, 4), dtype=np.uint16), sampling_rate_hz=62.5)
+    np.savez(path, pressure=np.ones((2, 4, 4), dtype=np.uint16), sampling_rate_hz=62.5, first_frame=5)
     monkeypatch.setattr(playback.mo, "iframe", lambda html, **kwargs: html)
     parser = RecordingParser()
     with np.load(path) as trial:
-        parser.feed(playback.pressure_player(trial["pressure"], trial["sampling_rate_hz"], title="trial"))
-    assert parser.recording["hz"] == 62.5
+        parser.feed(playback.pressure_player(trial["pressure"], trial["sampling_rate_hz"], title="trial",
+                                         first_frame=trial["first_frame"]))
+    assert (parser.recording["hz"], parser.recording["first"]) == (62.5, 5)
 
 
 @pytest.mark.parametrize(
@@ -87,6 +88,9 @@ def test_playback_uses_sampling_rate_from_npz(tmp_path, monkeypatch):
         (np.timedelta64(100, "ns"), 0, "sampling frequency"),
         (100, True, "starting frame"),
         (100, np.bool_(True), "starting frame"),
+        (100, np.array([5]), "starting frame"),
+        (100, np.array(5.0), "starting frame"),
+        (100, np.ma.array(5, mask=True), "starting frame"),
     ],
 )
 def test_playback_rejects_invalid_clock_parameters(hz, first_frame, message):

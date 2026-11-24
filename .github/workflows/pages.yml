@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: ppds-pages-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -21,11 +21,11 @@ jobs:
       PPDS_DATA: ${{ github.workspace }}/.pages-data
       MPLBACKEND: Agg
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: '3.14'
           enable-cache: true
@@ -36,7 +36,7 @@ jobs:
         run: uv run --locked pytest -q tests/test_notebook_assets.py
       - name: Restore PPDS 1.0.0
         id: data
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: .pages-data
           key: ppds-24432612-${{ hashFiles('src/ppds/release_1_0_0.json') }}
@@ -70,7 +70,7 @@ jobs:
           fi
       - name: Upload the site
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: _site
 
@@ -87,4 +87,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: pages
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

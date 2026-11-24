@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import sys
 from html import escape
+from html.parser import HTMLParser
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
@@ -54,12 +56,53 @@ def is_notebook(path):
     )
 
 
+class ExportTags(HTMLParser):
+    """Locate the end of the head and the opening body in the marimo export."""
+
+    def __init__(self):
+        super().__init__()
+        self.head_end = self.body_start = None
+
+    def handle_endtag(self, tag):
+        if tag == "head" and self.head_end is None:
+            self.head_end = self.getpos()
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "body" and self.body_start is None:
+            self.body_start = self.getpos()
+            self.body_tag = self.get_starttag_text()
+
+
+def add_navigation(output, navigation, style=""):
+    document = output.read_text(encoding="utf-8")
+    tags = ExportTags()
+    offsets = [0]
+    for line in StringIO(document):
+        tags.feed(line)
+        if tags.body_start is not None:
+            break
+        offsets.append(offsets[-1] + len(line))
+    if tags.head_end is None or tags.body_start is None or tags.head_end >= tags.body_start:
+        raise ValueError(f"Unexpected marimo HTML in {output}")
+    line, col = tags.head_end
+    head = offsets[line - 1] + col
+    line, col = tags.body_start
+    body = offsets[line - 1] + col + len(tags.body_tag)
+    output.write_text(document[:head] + style + document[head:body] + navigation + document[body:],
+                      encoding="utf-8")
+
+
+def relative_url(target, directory):
+    return quote(target.relative_to(directory, walk_up=True).as_posix())
+
+
 class PageLinks(Treeprocessor):
-    def __init__(self, source, pages, notebooks):
+    def __init__(self, source, pages, notebooks, revision):
         super().__init__()
         self.source = source
         self.pages = pages
         self.notebooks = notebooks
+        self.revision = revision
 
     def run(self, document):
         listed = set()
@@ -79,16 +122,15 @@ class PageLinks(Treeprocessor):
             if not (ROOT / target).is_file():
                 raise ValueError(f"Missing link in {self.source}: {href}")
             if target in self.pages:
-                path = os.path.relpath(
+                path = relative_url(
                     self.pages[target], self.pages[self.source].parent
                 )
                 link.set(
-                    "href", urlunsplit(("", "", quote(path), url.query, url.fragment))
+                    "href", urlunsplit(("", "", path, url.query, url.fragment))
                 )
                 listed.add(target)
             else:
-                revision = os.environ.get("GITHUB_SHA", "main")
-                path = f"/BMClab/ppds/blob/{revision}/{quote(target.as_posix())}"
+                path = f"/BMClab/ppds/blob/{self.revision}/{quote(target.as_posix())}"
                 link.set(
                     "href",
                     urlunsplit(("https", "github.com", path, url.query, url.fragment)),
@@ -99,11 +141,11 @@ class PageLinks(Treeprocessor):
             if missing:
                 ul = ET.SubElement(document, "ul")
                 for source in missing:
-                    href = os.path.relpath(
+                    href = relative_url(
                         self.pages[source], self.pages[CATALOG].parent
                     )
                     ET.SubElement(
-                        ET.SubElement(ul, "li"), "a", href=quote(href)
+                        ET.SubElement(ul, "li"), "a", href=href
                     ).text = source.stem
 
 
@@ -121,26 +163,27 @@ def build(site):
         {n: Path("notebooks") / n.with_suffix(".html").name for n in notebooks}
     )
 
+    revision = quote(os.environ.get("GITHUB_SHA") or "main", safe="")
     for guide in GUIDES:
         md = markdown.Markdown(extensions=["tables", "fenced_code", "toc"])
-        md.treeprocessors.register(PageLinks(guide, pages, notebooks), "site-links", 1)
-        body = md.convert((ROOT / guide).read_text())
+        md.treeprocessors.register(PageLinks(guide, pages, notebooks, revision), "site-links", 1)
+        body = md.convert((ROOT / guide).read_text(encoding="utf-8"))
         title = escape(md.toc_tokens[0]["name"])
         page = site / pages[guide]
         page.parent.mkdir(parents=True, exist_ok=True)
         nav = ""
         if guide != Path("README.md"):
-            home = os.path.relpath(site / "index.html", page.parent)
+            home = relative_url(site / "index.html", page.parent)
             nav = f'<nav aria-label="Site navigation"><a href="{home}">PPDS home</a> · {SOURCE_LINK}</nav>'
         page.write_text(
             f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
-            f"<title>{title}</title><style>{STYLE}</style></head><body>{nav}<main>{body}</main></body></html>"
+            f"<title>{title}</title><style>{STYLE}</style></head><body>{nav}<main>{body}</main></body></html>",
+            encoding="utf-8",
         )
 
     (site / "notebooks").mkdir()
     (site / "edit").mkdir()
-    revision = os.environ.get("GITHUB_SHA", "main")
     for source in sorted(notebooks):
         page = site / pages[source]
         editor = site / "edit" / page.name
@@ -166,7 +209,7 @@ def build(site):
             check=True,
         )
         shutil.copyfile(ROOT / source, page.with_suffix(".py"))
-        blob = f"BMClab/ppds/blob/{quote(revision, safe='')}/{quote(source.as_posix())}"
+        blob = f"BMClab/ppds/blob/{revision}/{quote(source.as_posix())}"
         nav_start = (
             '<nav aria-label="Notebook navigation" style="position:relative;z-index:1;'
             'padding:.5rem 1rem;background:Canvas;color:CanvasText;font:1rem system-ui">'
@@ -180,15 +223,10 @@ def build(site):
             f'<a href="{quote(source.name)}" download>Download .py</a></nav>'
         )
         editor_nav = f'{nav_start}<a href="../notebooks/{quote(page.name)}">Saved output</a></nav>'
-        for output, navigation in ((page, nav), (editor, editor_nav)):
-            document = output.read_text()
-            if document.count("<body>") != 1 or document.count("</head>") != 1:
-                raise ValueError(f"Unexpected marimo HTML in {output}")
-            if output == editor:
-                # Fit the absolutely positioned editor beneath the site's navigation.
-                layout = "<style>body{display:flex;flex-direction:column;height:100dvh}#root{position:relative;flex:1;min-height:0}</style>"
-                document = document.replace("</head>", layout + "</head>", 1)
-            output.write_text(document.replace("<body>", "<body>" + navigation, 1))
+        add_navigation(page, nav)
+        # Fit the absolutely positioned editor beneath the site's navigation.
+        layout = "<style>body{display:flex;flex-direction:column;height:100dvh}#root{position:relative;flex:1;min-height:0}</style>"
+        add_navigation(editor, editor_nav, layout)
     print(f"Built {len(notebooks)} notebooks and {len(GUIDES)} guide pages.")
 
 
