@@ -159,3 +159,24 @@ def test_subjects_and_trials_query_handles_bad_queries_without_hiding_io_errors(
             ds=broken, mo=mo, pd=pd, query=SimpleNamespace(value="Age > 0"),
             task=SimpleNamespace(value=None), tokenize=tokenize,
         )
+
+
+def test_notebook_clocks_keep_fractional_sampling_rates(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT))
+    from examples import exploration, ground_reaction_forces, pressure, standing
+
+    rate = 12.5
+    trials = pd.DataFrame([{"subject": "s001", "condition": "wc", "trial": 1, "frequency_hz": rate}])
+    clip = np.ones((2, 2, 2), dtype=np.uint16)
+    ds = SimpleNamespace(pressure=lambda *args: clip, standing=lambda *args: clip,
+                         contacts=lambda *args: [], pressure_features=lambda *args: range(len(clip)))
+    subject, condition, trial = (SimpleNamespace(value=x) for x in ("s001", "wc", 1))
+    tasks = {"wc": "comfortable"}
+    _, recording = exploration.load_recording.run(ds=ds, mo=mo, task_trials=trials, tasks=tasks, trial=trial)
+    _, signals = pressure.trial_signals.run(CELL=1, CONDITIONS=tasks, condition=condition, ds=ds,
+                                             frequency=trials.set_index("trial").frequency_hz,
+                                             mo=mo, np=np, subject=subject, trial=trial)
+    _, stance = standing.load_stance.run(ds=ds, stance_trials=trials.set_index("subject"), subject=subject)
+    _, forces = ground_reaction_forces.choose_force_trial.run(SPEEDS=tasks, mo=mo, walking_trials=trials)
+    assert recording["hz"] == signals["hz"] == stance["hz"] == forces["force_trial"].value[2] == rate
+    np.testing.assert_allclose(signals["t"], [0, 1 / rate])

@@ -2,8 +2,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo>=0.25.2",
-#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/2b7fe938caa4b18b7082d20d50880858a93479bb/notebook-assets/reader_data-0.1.0-py3-none-any.whl",
-#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/2b7fe938caa4b18b7082d20d50880858a93479bb/notebook-assets/ppds-0.1.0-py3-none-any.whl",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/4100775b8ede8154582e950908c883dfa8273087/notebook-assets/reader_data-0.1.1.dev0-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/4100775b8ede8154582e950908c883dfa8273087/notebook-assets/ppds-0.1.1.dev0-py3-none-any.whl",
 # ]
 # ///
 
@@ -92,10 +92,10 @@ def _(condition, ds, mo, subject):
 
 
 @app.cell
-def _(CELL, CONDITIONS, condition, ds, frequency, mo, np, subject, trial):
+def trial_signals(CELL, CONDITIONS, condition, ds, frequency, mo, np, subject, trial):
     mo.stop(trial.value is None, mo.md("_Choose a trial._"))
     p = ds.pressure(subject.value, condition.value, int(trial.value))
-    hz = int(frequency.loc[int(trial.value)])
+    hz = float(frequency.loc[int(trial.value)])
     t = np.arange(p.shape[0]) / hz
     force = p.sum(axis=(1, 2)) * 0.1 * CELL**2           # N: kPa x 0.1 (N/cm^2 per kPa) x cell area (cm^2)
     area = (p > 0).sum(axis=(1, 2)) * CELL**2            # cm^2

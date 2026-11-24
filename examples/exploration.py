@@ -2,8 +2,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo>=0.25.2",
-#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/2b7fe938caa4b18b7082d20d50880858a93479bb/notebook-assets/reader_data-0.1.0-py3-none-any.whl",
-#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/2b7fe938caa4b18b7082d20d50880858a93479bb/notebook-assets/ppds-0.1.0-py3-none-any.whl",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/4100775b8ede8154582e950908c883dfa8273087/notebook-assets/reader_data-0.1.1.dev0-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/4100775b8ede8154582e950908c883dfa8273087/notebook-assets/ppds-0.1.1.dev0-py3-none-any.whl",
 # ]
 # ///
 
@@ -142,17 +142,17 @@ def _(available, condition, mo):
 
 
 @app.cell(hide_code=True)
-def _(ds, mo, task_trials, tasks, trial):
+def load_recording(ds, mo, task_trials, tasks, trial):
     _row = task_trials.loc[task_trials.trial == trial.value].iloc[0]
     key = (_row.subject, _row.condition, int(_row.trial))
-    hz = int(_row.frequency_hz)
+    hz = float(_row.frequency_hz)
     frames = ds.pressure_features(*key)
     recording = ds.pressure(*key)
     trial_peak = recording.max(axis=0)
     contacts = ds.contacts(*key)
     mo.md(
         f"## {key[0]} · {tasks[key[1]]} · Trial {key[2]}\n\n"
-        f"{len(frames)} frames at {hz} Hz · {len(frames) / hz:.2f} s"
+        f"{len(frames)} frames at {hz:g} Hz · {len(frames) / hz:.2f} s"
     )
     return contacts, frames, hz, key, recording, trial_peak
 

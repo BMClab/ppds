@@ -2,8 +2,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo>=0.25.2",
-#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/2b7fe938caa4b18b7082d20d50880858a93479bb/notebook-assets/reader_data-0.1.0-py3-none-any.whl",
-#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/2b7fe938caa4b18b7082d20d50880858a93479bb/notebook-assets/ppds-0.1.0-py3-none-any.whl",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/4100775b8ede8154582e950908c883dfa8273087/notebook-assets/reader_data-0.1.1.dev0-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/4100775b8ede8154582e950908c883dfa8273087/notebook-assets/ppds-0.1.1.dev0-py3-none-any.whl",
 # ]
 # ///
 
@@ -94,9 +94,9 @@ def _(COLORS, G, SPEEDS, body_weight, frames, plt, subject, subjects):
 
 
 @app.cell(hide_code=True)
-def _(SPEEDS, mo, walking_trials):
+def choose_force_trial(SPEEDS, mo, walking_trials):
     _options = {
-        f"{SPEEDS[r.condition].capitalize()} walking · Trial {r.trial}": (r.condition, int(r.trial), int(r.frequency_hz))
+        f"{SPEEDS[r.condition].capitalize()} walking · Trial {r.trial}": (r.condition, int(r.trial), float(r.frequency_hz))
         for r in walking_trials.sort_values(["condition", "trial"]).itertuples()
     }
     mo.stop(not _options, mo.md("No walking trials for this participant."))
