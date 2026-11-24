@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+type: software
+title: "Python toolkit and example notebooks for the plantar pressure data set (PPDS)"
+message: >-
+  If you use the PPDS toolkit or notebooks, please cite this software.
+  If you use the recordings or derived data, please also cite the Zenodo dataset listed below.
+authors:
+  - family-names: Fukuchi
+    given-names: Reginaldo K.
+    orcid: "https://orcid.org/0000-0003-3113-7715"
+  - family-names: Fukuchi
+    given-names: Claudiane A.
+    orcid: "https://orcid.org/0000-0001-7559-2491"
+  - family-names: Duarte
+    given-names: Marcos
+    orcid: "https://orcid.org/0000-0002-0344-7460"
+version: "0.1.0"
+license: MIT
+repository-code: "https://github.com/BMClab/ppds"
+url: "https://bmclab.github.io/ppds/"
+references:
+  - type: data
+    title: "ppds: plantar pressure data set"
+    authors:
+      - family-names: Duarte
+        given-names: Marcos
+      - family-names: Fukuchi
+        given-names: Reginaldo
+    version: "1.0.0"
+    doi: "10.5281/zenodo.24432612"
