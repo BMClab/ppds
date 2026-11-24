@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: '3.14'
@@ -31,6 +32,8 @@ jobs:
       - run: uv sync --locked
       - name: Lint the toolkit and notebooks
         run: uv run --locked ruff check .
+      - name: Verify notebook wheels and immutable asset URLs
+        run: uv run --locked pytest -q tests/test_notebook_assets.py
       - name: Restore PPDS 1.0.0
         id: data
         uses: actions/cache@v5
@@ -59,7 +62,12 @@ jobs:
       - name: Build the site and execute the examples
         run: uv run --locked python scripts/build_pages.py
       - name: Exercise the cohort, playback and scan controls in Chrome
-        run: uv run --no-project --script scripts/check_browser_examples.py _site
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            uv run --no-project --script scripts/check_browser_examples.py _site --checkout-assets notebook-assets
+          else
+            uv run --no-project --script scripts/check_browser_examples.py _site
+          fi
       - name: Upload the site
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4

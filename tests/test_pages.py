@@ -36,7 +36,11 @@ def _():
     page = site / "notebooks/demo.html"
     assert "saved 42" in page.read_text()
     editor = site / "edit/demo.html"
-    assert "marimo" in editor.read_text()
+    editor_html = editor.read_text()
+    assert "marimo" in editor_html
+    assert 'href="../index.html"' in editor_html
+    assert 'href="../examples/index.html"' in editor_html
+    assert 'href="../notebooks/demo.html"' in editor_html
     assert 'href="../edit/demo.html"' in page.read_text()
     ref = f"BMClab/ppds/blob/{'a' * 40}/examples/demo.py"
     assert f'href="https://molab.marimo.io/github/{ref}"' in page.read_text()

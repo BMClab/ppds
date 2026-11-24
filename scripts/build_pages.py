@@ -167,19 +167,28 @@ def build(site):
         )
         shutil.copyfile(ROOT / source, page.with_suffix(".py"))
         blob = f"BMClab/ppds/blob/{quote(revision, safe='')}/{quote(source.as_posix())}"
+        nav_start = (
+            '<nav aria-label="Notebook navigation" style="position:relative;z-index:1;'
+            'padding:.5rem 1rem;background:Canvas;color:CanvasText;font:1rem system-ui">'
+            '<a href="../index.html">PPDS home</a> · <a href="../examples/index.html">All examples</a> · '
+        )
         nav = (
-            f'<nav aria-label="Notebook navigation" style="position:relative;z-index:1;'
-            f'padding:.5rem 1rem;background:Canvas;color:CanvasText;font:1rem system-ui">'
-            f'<a href="../index.html">PPDS home</a> · <a href="../examples/index.html">All examples</a> · {SOURCE_LINK} · '
+            f'{nav_start}{SOURCE_LINK} · '
             f'<a href="../edit/{quote(editor.name)}">Edit in browser</a> · '
             f'<a href="https://molab.marimo.io/github/{blob}">Open in molab</a> · '
             f'<a href="https://marimo.app/github.com/{blob}">Open in marimo.app</a> · '
             f'<a href="{quote(source.name)}" download>Download .py</a></nav>'
         )
-        document = page.read_text()
-        if document.count("<body>") != 1:
-            raise ValueError(f"Unexpected marimo HTML in {page.name}")
-        page.write_text(document.replace("<body>", "<body>" + nav, 1))
+        editor_nav = f'{nav_start}<a href="../notebooks/{quote(page.name)}">Saved output</a></nav>'
+        for output, navigation in ((page, nav), (editor, editor_nav)):
+            document = output.read_text()
+            if document.count("<body>") != 1 or document.count("</head>") != 1:
+                raise ValueError(f"Unexpected marimo HTML in {output}")
+            if output == editor:
+                # Fit the absolutely positioned editor beneath the site's navigation.
+                layout = "<style>body{display:flex;flex-direction:column;height:100dvh}#root{position:relative;flex:1;min-height:0}</style>"
+                document = document.replace("</head>", layout + "</head>", 1)
+            output.write_text(document.replace("<body>", "<body>" + navigation, 1))
     print(f"Built {len(notebooks)} notebooks and {len(GUIDES)} guide pages.")
 
 
