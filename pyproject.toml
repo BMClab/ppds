@@ -1,0 +1,53 @@
+[project]
+name = "ppds"
+version = "0.1.0"
+description = "PPDS: plantar pressure recordings, pressure-derived features and 3D foot scans (code and notebooks)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Reginaldo K. Fukuchi" },
+    { name = "Claudiane A. Fukuchi" },
+    { name = "Marcos Duarte" },
+]
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=2.0.0",
+    "marimo>=0.25.2",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.1.0",
+    "plotly>=6",
+    "pyarrow>=26.0.1",
+    "reader-data>=0.1.0,<0.2",
+    "scipy>=1.18.1",
+]
+
+[project.urls]
+Repository = "https://github.com/BMClab/ppds"
+Documentation = "https://bmclab.github.io/ppds/"
+Dataset = "https://doi.org/10.5281/zenodo.24432612"
+
+[tool.uv.sources]
+reader-data = { workspace = true }
+
+[tool.uv.workspace]
+members = ["framework"]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "framework/tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# marimo displays the final expression and generates explicit cell returns.
+"examples/*.py" = ["B018", "PLR1711"]
+
+[dependency-groups]
+dev = [
+    "markdown>=3.11.2",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]

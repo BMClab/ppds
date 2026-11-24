@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pressure playback · $title</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 8px 4px; font: 14px/1.4 system-ui, sans-serif; color: #253645; background: white; }
+  section { display: grid; gap: 8px; }
+  header, .key, .controls, .timeline { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+  header { justify-content: space-between; }
+  h3 { margin: 0; font-size: 16px; }
+  canvas { width: 100%; height: 150px; object-fit: contain; image-rendering: pixelated; background: #f0f3f5; }
+  .key { font-size: 12px; }
+  .empty-swatch { display: inline-block; width: 12px; height: 9px; background: #f0f3f5; border: 1px solid #a7b3bc; }
+  #gradient { display: inline-block; width: 92px; height: 9px; }
+  .timeline input { flex: 1 1 130px; min-width: 0; accent-color: #286480; }
+  output { font-variant-numeric: tabular-nums; }
+  button, select { padding: 3px 8px; min-height: 30px; border: 1px solid #9faeb8; border-radius: 4px; background: white; color: inherit; font: inherit; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .48; cursor: default; }
+  #play { min-width: 60px; background: #225a73; border-color: #225a73; color: white; }
+  label { white-space: nowrap; }
+</style>
+</head>
+<body>
+<section aria-label="Pressure playback">
+  <header><h3>Pressure playback</h3><span>$title</span></header>
+  <canvas aria-label="Plantar pressure map, $title"></canvas>
+  <div class="key"><span>Platform $axes</span><span><i class="empty-swatch"></i> Unloaded</span><span id="scale">Pressure 0 <i id="gradient"></i> <span id="peak"></span> kPa</span></div>
+  <div class="timeline"><input id="seek" type="range" min="0" value="0" aria-label="Trial frame"><output id="status" aria-live="polite" aria-atomic="true"></output></div>
+  <div class="controls">
+    <button id="play" type="button">Play</button>
+    <button id="restart" type="button">Restart</button>
+    <button id="previous" type="button" aria-label="Previous frame">−1 frame</button>
+    <button id="next" type="button" aria-label="Next frame">+1 frame</button>
+    <label>Speed <select id="speed"><option value=".1">0.1×</option><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+    <label><input type="checkbox" id="loop"> Loop</label>
+  </div>
+</section>
+<script id="recording" type="application/json">$config</script>
+<script>
+  const byId = id => document.getElementById(id);
+  const data = JSON.parse(byId("recording").textContent);
+  const decode = encoded => Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+  const packed = decode(data.packed);
+  const offsets = new Uint32Array(packed.buffer, 0, data.frames + 1);
+  const readings = new Uint16Array(packed.buffer, offsets.byteLength);
+  const colors = decode(data.palette);
+  const canvas = document.querySelector("canvas");
+  canvas.width = data.width;
+  canvas.height = data.height;
+  const context = canvas.getContext("2d");
+  const image = context.createImageData(data.width, data.height);
+  const seek = byId("seek");
+  const last = data.frames - 1;
+  seek.min = data.first;
+  seek.max = data.first + last;
+  byId("peak").textContent = data.peak;
+  byId("scale").hidden = data.peak === 0;
+  const stops = Array.from({length: 16}, (_, i) => "rgb(" + colors.slice(i * 68, i * 68 + 3).join(",") + ")");
+  byId("gradient").style.background = "linear-gradient(to right," + stops.join(",") + ")";
+
+  let frame = 0;
+  let animation = null;
+  let startTime = 0;
+  let startFrame = 0;
+  function draw(index) {
+    frame = index;
+    image.data.fill(0);
+    let total = 0;
+    for (let i = offsets[index]; i < offsets[index + 1]; i++) {
+      const pixel = readings[2 * i];
+      const kpa = readings[2 * i + 1];
+      const color = 4 * Math.round(255 * kpa / data.peak);
+      image.data.set(colors.subarray(color, color + 4), 4 * pixel);
+      total += kpa;
+    }
+    context.putImageData(image, 0, 0);
+    const absolute = data.first + index;
+    seek.value = absolute;
+    byId("status").textContent = "Frame " + absolute + " / " + seek.max + " · " +
+      (absolute / data.hz).toFixed(2) + " s · Vertical force " + (total * data.newtonsPerKpa).toFixed(1) + " N";
+    byId("previous").disabled = index === 0;
+    byId("next").disabled = index === last;
+  }
+  function pause() {
+    cancelAnimationFrame(animation);
+    animation = null;
+    byId("status").setAttribute("aria-live", "polite");
+    byId("play").textContent = "Play";
+  }
+  function tick(now) {
+    const elapsed = Math.max(0, now - startTime) * data.hz * Number(byId("speed").value) / 1000;
+    const target = startFrame + Math.floor(elapsed);
+    if (target > last && !byId("loop").checked) {
+      draw(last);
+      pause();
+      return;
+    }
+    const index = target % data.frames;
+    if (index !== frame) draw(index);
+    animation = requestAnimationFrame(tick);
+  }
+  function rebase() { startFrame = frame; startTime = performance.now(); }
+  function stepTo(index) { pause(); draw(index); }
+  byId("play").onclick = () => {
+    if (animation !== null) { pause(); return; }
+    byId("status").setAttribute("aria-live", "off");
+    if (frame === last) draw(0);
+    rebase();
+    byId("play").textContent = "Pause";
+    animation = requestAnimationFrame(tick);
+  };
+  byId("restart").onclick = () => { draw(0); rebase(); };
+  byId("previous").onclick = () => stepTo(Math.max(0, frame - 1));
+  byId("next").onclick = () => stepTo(Math.min(last, frame + 1));
+  seek.oninput = () => stepTo(Number(seek.value) - data.first);
+  byId("speed").onchange = rebase;
+  byId("loop").onchange = rebase;
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+  draw(0);
+</script>
+</body>
+</html>

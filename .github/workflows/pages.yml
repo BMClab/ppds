@@ -1,0 +1,80 @@
+name: Publish example notebooks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ppds-pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PPDS_DATA: ${{ github.workspace }}/.pages-data
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.14'
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Lint the toolkit and notebooks
+        run: uv run --locked ruff check .
+      - name: Restore PPDS 1.0.0
+        id: data
+        uses: actions/cache@v5
+        with:
+          path: .pages-data
+          key: ppds-24432612-${{ hashFiles('src/ppds/release_1_0_0.json') }}
+      - name: Download the pinned Zenodo release
+        if: steps.data.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$PPDS_DATA"
+          manifest=src/ppds/release_1_0_0.json
+          jq -r '("metadata.json", (.resources[].zenodo_filename))' "$manifest" |
+            while IFS= read -r file; do
+              curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+                "https://zenodo.org/api/records/24432612/files/$file/content" \
+                --output "$PPDS_DATA/$file"
+            done
+      - name: Verify the release
+        run: |
+          cmp src/ppds/release_1_0_0.json "$PPDS_DATA/metadata.json"
+          uv run --locked python scripts/verify_release.py --data "$PPDS_DATA"
+      - name: Run the full suite on Python 3.12
+        run: uv run --isolated --locked --python 3.12 pytest -q
+      - name: Run the full suite on Python 3.14
+        run: uv run --locked pytest -q
+      - name: Build the site and execute the examples
+        run: uv run --locked python scripts/build_pages.py
+      - name: Upload the site
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: pages
+        uses: actions/deploy-pages@v5

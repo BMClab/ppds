@@ -1,0 +1,2 @@
+# Preserve the synthetic instrument export, including its final blank record.
+src/ppds/samples/demowc.txt -text whitespace=-blank-at-eof

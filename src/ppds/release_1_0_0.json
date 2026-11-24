@@ -1,0 +1,584 @@
+{
+  "dataset": "PPDS",
+  "title": "Plantar pressure data set",
+  "experiment": {
+    "site": "Laboratory of Biomechanics and Motor Control, Federal University of ABC, Brazil",
+    "participants": 95,
+    "tasks": "Quiet stance and barefoot walking at three self-selected speeds. A subset of 37 participants also ran at a comfortable speed.",
+    "plantar_pressure": "Zebris FDM-1.5 pressure platform system.",
+    "surface_scans": "Separate left and right foot and lower-leg scans acquired with Microsoft Kinect and Skanect 1.8.3."
+  },
+  "version": "1.0.0",
+  "subject_columns": [
+    "subject",
+    "Age",
+    "Height",
+    "Mass",
+    "Gender",
+    "DominantLeg",
+    "PAfreq",
+    "PAtype",
+    "Ortho-Prosthesis",
+    "Ortho-Prosthesis2",
+    "Footwear",
+    "FootwearSize",
+    "FootLenR",
+    "FootLenL",
+    "FootWidR",
+    "FootWidL",
+    "FootOrthosis",
+    "Illness",
+    "Illness2",
+    "Medication",
+    "MedicationName",
+    "MSKinjury",
+    "MSKinjuryNames",
+    "Surgery",
+    "SurgeryName",
+    "LegLength",
+    "BMI",
+    "AgeGroup",
+    "TrialsWS",
+    "TrialsWC",
+    "TrialsWF",
+    "TrialsRC",
+    "TrialsStanding"
+  ],
+  "conditions": {
+    "ws": "walking, slow",
+    "wc": "walking, comfortable",
+    "wf": "walking, fast",
+    "rc": "running, comfortable",
+    "ss": "quiet standing (eyes-open protocol)"
+  },
+  "pressure_grid": {
+    "axes": [
+      "frame",
+      "y",
+      "x"
+    ],
+    "shape_yx": [
+      353,
+      64
+    ],
+    "sensor_pitch_mm": [
+      8.469,
+      8.469
+    ],
+    "origin": "Center of sensor (y=0, x=0).",
+    "orientation": "Gait y increases in the walking direction. Stance retains the platform orientation.",
+    "time": "Trial-relative seconds = frame / frequency_hz. Gait 100 Hz; stance final 100 frames at 10 Hz.",
+    "sparsity": "Initialize all n_frames by 353 by 64 cells to zero, then fill the stored readings."
+  },
+  "pressure_features": {
+    "force": "Sum of sensor pressures in kPa multiplied by 1000 and sensor area in square metres.",
+    "cop": "Pressure-weighted mean of the sensor-center coordinates, in the same axes as the pressure grid.",
+    "contact_area": "Number of loaded cells multiplied by the area of one sensor in square centimetres.",
+    "peak_pressure": "Maximum loaded cell pressure in each frame and support group, in kPa.",
+    "side_assignment": "Each retained pressure reading has an anatomical foot side. Gait assignments use acquisition contact marks and reviewed foot regions. For stance the lower of the two occupied x bands is the left foot.",
+    "side_coverage": {
+      "rc": {
+        "frames": 47540,
+        "unresolved_per_foot_frames": 0
+      },
+      "ss": {
+        "frames": 9500,
+        "unresolved_per_foot_frames": 0
+      },
+      "wc": {
+        "frames": 258100,
+        "unresolved_per_foot_frames": 0
+      },
+      "wf": {
+        "frames": 194658,
+        "unresolved_per_foot_frames": 0
+      },
+      "ws": {
+        "frames": 373757,
+        "unresolved_per_foot_frames": 0
+      }
+    },
+    "missingness": "An unloaded support has zero force, contact area and peak pressure, and null COP."
+  },
+  "gait_contacts": {
+    "walking": "Each segmented walking footprint on the original grid defines one contact. The interval spans its first through last loaded frame, including any intervening unloaded samples.",
+    "running": "Each uninterrupted run of loaded frames for one anatomical foot defines one running contact.",
+    "numbering": "Contacts start at one in order of first load within each trial. The start frame is inclusive and the stop frame is exclusive."
+  },
+  "joins": {
+    "pressure": "Join pressure or pressure_features to trials on trial_id.",
+    "contacts": "Join contacts to trials on trial_id. On the original grid, a gait reading belongs to the contact of the same trial_id and side with start_frame <= frame < stop_frame.",
+    "footprints": "Join registered walking footprint pixels to contacts on (trial_id, contact). Each footprint image represents one walking contact. Its pixel coordinates refer to the registered image.",
+    "subjects": "Project subject_columns from trials and take distinct rows, one per participant."
+  },
+  "resources": {
+    "trials": {
+      "path": "trials.parquet",
+      "zenodo_filename": "trials.parquet",
+      "format": "parquet",
+      "description": "Participant characteristics and pressure trial index",
+      "primary_key": [
+        "trial_id"
+      ],
+      "rows": 3312,
+      "bytes": 54111,
+      "sha256": "2a7e8c2c6d7b32129b95a4b72af49ed51c83620f82019c771c0e92b6f3b85a8c",
+      "columns": {
+        "trial_id": {
+          "type": "uint16",
+          "description": "Unique release trial identifier. Join to trials.trial_id."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Pseudonymous participant identifier, s001 through s095."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Experimental task code. See conditions."
+        },
+        "trial": {
+          "type": "uint8",
+          "description": "One-based trial number within participant and condition."
+        },
+        "n_frames": {
+          "type": "uint16",
+          "description": "Number of recorded frames, including unloaded frames."
+        },
+        "frequency_hz": {
+          "type": "uint8",
+          "description": "Pressure sampling frequency.",
+          "unit": "Hz"
+        },
+        "duration_s": {
+          "type": "double",
+          "description": "Observation window length, n_frames / frequency_hz.",
+          "unit": "s"
+        },
+        "n_cells": {
+          "type": "uint32",
+          "description": "Count of nonzero pressure readings across the trial."
+        },
+        "Age": {
+          "type": "double",
+          "description": "subject’s age in years at the data collection, with one decimal place, computed from the dates of birth and of the data collection.",
+          "unit": "year"
+        },
+        "Height": {
+          "type": "double",
+          "description": "subject’s height in centimeters (measured with a calibrated stadiometer).",
+          "unit": "cm"
+        },
+        "Mass": {
+          "type": "double",
+          "description": "subject’s mass in kilograms (measured with a calibrated scale).",
+          "unit": "kg"
+        },
+        "Gender": {
+          "type": "string",
+          "description": "gender (F or M)."
+        },
+        "DominantLeg": {
+          "type": "string",
+          "description": "preferred self-reported leg for kicking a ball (R, L, or Ambidextrous)."
+        },
+        "PAfreq": {
+          "type": "int64",
+          "description": "number of days per week the subject practiced physical activity (from 0 to 7).",
+          "unit": "days/week"
+        },
+        "PAtype": {
+          "type": "string",
+          "description": "type of physical activity practiced (“None” when PAfreq is 0)."
+        },
+        "Ortho-Prosthesis": {
+          "type": "string",
+          "description": "whether the subject wears any type of orthosis or prosthesis, as declared by the subject (Yes or No)."
+        },
+        "Ortho-Prosthesis2": {
+          "type": "string",
+          "description": "name of the orthosis or prosthesis the subject wears (“None” if the subject did not wear any orthosis or prosthesis)."
+        },
+        "Footwear": {
+          "type": "string",
+          "description": "most common type of footwear the subject wears daily."
+        },
+        "FootwearSize": {
+          "type": "int64",
+          "description": "size of footwear in Brazilian standards.",
+          "unit": "Brazilian shoe size"
+        },
+        "FootLenR": {
+          "type": "double",
+          "description": "right foot length in cm (measured with a calibrated caliper).",
+          "unit": "cm"
+        },
+        "FootLenL": {
+          "type": "double",
+          "description": "left foot length in cm (measured with a calibrated caliper).",
+          "unit": "cm"
+        },
+        "FootWidR": {
+          "type": "double",
+          "description": "right foot width in cm (measured with a calibrated caliper).",
+          "unit": "cm"
+        },
+        "FootWidL": {
+          "type": "double",
+          "description": "left foot width in cm (measured with a calibrated caliper).",
+          "unit": "cm"
+        },
+        "FootOrthosis": {
+          "type": "string",
+          "description": "type of foot orthosis on shoes (Insoles or None in the released cohort; protocol categories also included rigid orthosis and taping)."
+        },
+        "Illness": {
+          "type": "string",
+          "description": "whether the subject had any illness at the time of the trials, as declared by the subject (Yes or No)."
+        },
+        "Illness2": {
+          "type": "string",
+          "description": "type of illness of the subject (“None” when no illness was reported; one participant with Illness = “Yes”, s022, also has “None” here)."
+        },
+        "Medication": {
+          "type": "string",
+          "description": "whether the subject takes any medication regularly (Yes or No)."
+        },
+        "MedicationName": {
+          "type": "string",
+          "description": "name of the medication(s) the subject takes (“None” when no medication was reported; one participant with Medication = “Yes”, s095, also has “None” here)."
+        },
+        "MSKinjury": {
+          "type": "string",
+          "description": "whether the subject sustained a musculoskeletal injury in the 12 months prior to data collection, as declared by the subject (Yes or No)."
+        },
+        "MSKinjuryNames": {
+          "type": "string",
+          "description": "type of injury(ies) sustained by the subject (“None” if the subject did not have injuries)."
+        },
+        "Surgery": {
+          "type": "string",
+          "description": "whether the subject underwent any surgical procedures in the 12 months prior to data collection, as declared by the subject (Yes or No)."
+        },
+        "SurgeryName": {
+          "type": "string",
+          "description": "name of surgical procedure as declared by the subject (“None” if the subject had no surgery)."
+        },
+        "LegLength": {
+          "type": "double",
+          "description": "leg length in cm (average of the two legs, measured with a metric tape).",
+          "unit": "cm"
+        },
+        "BMI": {
+          "type": "double",
+          "description": "body mass index in kg/m² (Mass divided by the square of Height in meters, rounded to 0.1).",
+          "unit": "kg/m²"
+        },
+        "AgeGroup": {
+          "type": "string",
+          "description": "age group: Y (younger adults, 18–50 completed years; decimal Age 18.4–50.7) or O (older adults, 59 years or more; decimal Age 59.2–87.1)."
+        },
+        "TrialsWS": {
+          "type": "int64",
+          "description": "number of trials with plantar pressure data walking at slow speed (10 in the protocol)."
+        },
+        "TrialsWC": {
+          "type": "int64",
+          "description": "number of trials with plantar pressure data walking at comfortable speed (10 in the protocol)."
+        },
+        "TrialsWF": {
+          "type": "int64",
+          "description": "number of trials with plantar pressure data walking at fast speed (10 in the protocol)."
+        },
+        "TrialsRC": {
+          "type": "int64",
+          "description": "number of trials with plantar pressure data running at comfortable speed (0 when no running pressure trials are available). Running was performed only by subjects fit enough."
+        },
+        "TrialsStanding": {
+          "type": "int64",
+          "description": "number of trials with plantar pressure data during standing still (1 for each retained subject; one trial includes both feet)."
+        }
+      }
+    },
+    "pressure": {
+      "path": "pressure.parquet",
+      "zenodo_filename": "pressure.parquet",
+      "format": "parquet",
+      "description": "Nonzero plantar pressure readings with anatomical foot side",
+      "primary_key": [
+        "trial_id",
+        "frame",
+        "y",
+        "x"
+      ],
+      "rows": 112590395,
+      "bytes": 124803423,
+      "sha256": "c86405c988ad74fbdce7bbd6b036cdf1ac26d9f0def3c0bcfa7ed7fc23ead67c",
+      "columns": {
+        "trial_id": {
+          "type": "uint16",
+          "description": "Unique release trial identifier. Join to trials.trial_id."
+        },
+        "frame": {
+          "type": "uint16",
+          "description": "Zero-based sample index within the selected pressure trial."
+        },
+        "y": {
+          "type": "uint16",
+          "description": "Sensor index along the long platform axis (0–352)."
+        },
+        "x": {
+          "type": "uint8",
+          "description": "Sensor index across the platform (0–63)."
+        },
+        "value": {
+          "type": "uint16",
+          "description": "Plantar pressure at the sensor.",
+          "unit": "kPa"
+        },
+        "side": {
+          "type": "string",
+          "description": "Anatomical foot side, L for left and R for right."
+        }
+      }
+    },
+    "pressure_features": {
+      "path": "features/pressure_features.parquet",
+      "zenodo_filename": "features_pressure_features.parquet",
+      "format": "parquet",
+      "description": "Vertical force, center of pressure, loaded area and peak pressure per frame and foot",
+      "primary_key": [
+        "trial_id",
+        "frame"
+      ],
+      "rows": 883555,
+      "bytes": 49686627,
+      "sha256": "7f04830885b1127b72888492680a6272d8f92b991cac6b4b91e3d8fabc7bc5f7",
+      "columns": {
+        "trial_id": {
+          "type": "uint16",
+          "description": "Unique release trial identifier. Join to trials.trial_id."
+        },
+        "frame": {
+          "type": "uint16",
+          "description": "Zero-based sample index within the selected pressure trial."
+        },
+        "grf_z": {
+          "type": "double",
+          "description": "Vertical force from cleaned pressure, combined.",
+          "unit": "N"
+        },
+        "cop_x": {
+          "type": "double",
+          "description": "Pressure-weighted x coordinate, combined.",
+          "unit": "mm"
+        },
+        "cop_y": {
+          "type": "double",
+          "description": "Pressure-weighted y coordinate, combined.",
+          "unit": "mm"
+        },
+        "contact_area": {
+          "type": "double",
+          "description": "Area of simultaneously loaded sensors, combined.",
+          "unit": "cm²"
+        },
+        "peak_pressure": {
+          "type": "uint16",
+          "description": "Highest sensor pressure in the frame, combined.",
+          "unit": "kPa"
+        },
+        "grf_z_left": {
+          "type": "double",
+          "description": "Vertical force from cleaned pressure, left foot.",
+          "unit": "N"
+        },
+        "cop_x_left": {
+          "type": "double",
+          "description": "Pressure-weighted x coordinate, left foot.",
+          "unit": "mm"
+        },
+        "cop_y_left": {
+          "type": "double",
+          "description": "Pressure-weighted y coordinate, left foot.",
+          "unit": "mm"
+        },
+        "contact_area_left": {
+          "type": "double",
+          "description": "Area of simultaneously loaded sensors, left foot.",
+          "unit": "cm²"
+        },
+        "peak_pressure_left": {
+          "type": "uint16",
+          "description": "Highest sensor pressure in the frame, left foot.",
+          "unit": "kPa"
+        },
+        "grf_z_right": {
+          "type": "double",
+          "description": "Vertical force from cleaned pressure, right foot.",
+          "unit": "N"
+        },
+        "cop_x_right": {
+          "type": "double",
+          "description": "Pressure-weighted x coordinate, right foot.",
+          "unit": "mm"
+        },
+        "cop_y_right": {
+          "type": "double",
+          "description": "Pressure-weighted y coordinate, right foot.",
+          "unit": "mm"
+        },
+        "contact_area_right": {
+          "type": "double",
+          "description": "Area of simultaneously loaded sensors, right foot.",
+          "unit": "cm²"
+        },
+        "peak_pressure_right": {
+          "type": "uint16",
+          "description": "Highest sensor pressure in the frame, right foot.",
+          "unit": "kPa"
+        }
+      }
+    },
+    "contacts": {
+      "path": "features/contacts.parquet",
+      "zenodo_filename": "features_contacts.parquet",
+      "format": "parquet",
+      "description": "Walking and running contacts on the original pressure grid",
+      "primary_key": [
+        "trial_id",
+        "contact"
+      ],
+      "rows": 14625,
+      "bytes": 302949,
+      "sha256": "780b0e90c95e78553378ddf9ac2109cb444f5ea8894417828b2dd3cabb619e64",
+      "columns": {
+        "trial_id": {
+          "type": "uint16",
+          "description": "Unique release trial identifier. Join to trials.trial_id."
+        },
+        "contact": {
+          "type": "uint8",
+          "description": "One-based contact number in chronological order within a gait trial."
+        },
+        "side": {
+          "type": "string",
+          "description": "Anatomical foot side, L for left and R for right."
+        },
+        "start_frame": {
+          "type": "uint16",
+          "description": "First loaded frame of the contact, inclusive."
+        },
+        "stop_frame": {
+          "type": "uint16",
+          "description": "Frame immediately following the last loaded frame, exclusive."
+        },
+        "contact_time": {
+          "type": "double",
+          "description": "Elapsed time from start_frame to stop_frame.",
+          "unit": "s"
+        },
+        "peak_pressure": {
+          "type": "uint16",
+          "description": "Highest sensor pressure during the contact.",
+          "unit": "kPa"
+        },
+        "peak_grf_z": {
+          "type": "double",
+          "description": "Maximum vertical force during the contact.",
+          "unit": "N"
+        },
+        "vertical_impulse": {
+          "type": "double",
+          "description": "Sum of the contact's frame forces divided by the sampling frequency.",
+          "unit": "N s"
+        },
+        "max_contact_area": {
+          "type": "double",
+          "description": "Largest simultaneously loaded sensor area during the contact.",
+          "unit": "cm²"
+        },
+        "contact_y_min": {
+          "type": "double",
+          "description": "Lowest loaded sensor-center y coordinate on the original grid.",
+          "unit": "mm"
+        },
+        "contact_y_max": {
+          "type": "double",
+          "description": "Highest loaded sensor-center y coordinate on the original grid.",
+          "unit": "mm"
+        }
+      }
+    },
+    "footprints": {
+      "path": "features/footprints.parquet",
+      "zenodo_filename": "features_footprints.parquet",
+      "format": "parquet",
+      "description": "Registered walking peak-pressure images linked to their original gait contacts",
+      "primary_key": [
+        "subject",
+        "condition",
+        "side",
+        "footprint",
+        "y",
+        "x"
+      ],
+      "rows": 4222237,
+      "bytes": 41039759,
+      "sha256": "22c647d763961b9361c01ff3d69b9c5a8fe714ca64cb89e250740d3b77aa2510",
+      "columns": {
+        "subject": {
+          "type": "string",
+          "description": "Subject code (sNNN)"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Task code (ws, wc, wf)"
+        },
+        "side": {
+          "type": "string",
+          "description": "Foot: L (left) or R (right)"
+        },
+        "footprint": {
+          "type": "uint16",
+          "description": "Footprint number (0 = template: the first footprint of that side and condition)"
+        },
+        "y": {
+          "type": "uint16",
+          "description": "Row of the registered image, 0-352 (0.8469 cm per row)"
+        },
+        "x": {
+          "type": "uint8",
+          "description": "Column of the registered image, 0-63 (0.8469 cm per column)"
+        },
+        "value": {
+          "type": "double",
+          "description": "Peak plantar pressure after registration, kPa (linearly interpolated; zeros not stored)",
+          "unit": "kPa"
+        },
+        "trial_id": {
+          "type": "uint16",
+          "description": "Unique release trial identifier. Join to trials.trial_id."
+        },
+        "contact": {
+          "type": "uint8",
+          "description": "One-based contact number in chronological order within a gait trial."
+        }
+      }
+    },
+    "scans": {
+      "path": "scans.zip",
+      "zenodo_filename": "scans.zip",
+      "format": "zip",
+      "member_format": "binary STL",
+      "coordinate_unit": "m",
+      "member_template": "scans/{subject}{side}_foot.stl",
+      "sides": {
+        "l": "left",
+        "r": "right"
+      },
+      "members": 190,
+      "bytes": 254245558,
+      "sha256": "28828cbb634dcbe5aa09c51f3d29106c01656f5d327493c9498dd7e4510dbbdf"
+    }
+  }
+}
