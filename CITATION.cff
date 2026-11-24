@@ -12,6 +12,8 @@ authors:
     given-names: Reginaldo K.
     orcid: "https://orcid.org/0000-0003-3113-7715"
 version: "0.1.0"
+date-released: "2026-11-24"
+doi: "10.5281/zenodo.24490657"
 license: MIT
 repository-code: "https://github.com/BMClab/ppds"
 url: "https://bmclab.github.io/ppds/"
@@ -21,9 +23,12 @@ references:
     authors:
       - family-names: Fukuchi
         given-names: Reginaldo
+        orcid: "https://orcid.org/0000-0003-3113-7715"
       - family-names: Fukuchi
         given-names: Claudiane
+        orcid: "https://orcid.org/0000-0001-7559-2491"
       - family-names: Duarte
         given-names: Marcos
+        orcid: "https://orcid.org/0000-0002-0344-7460"
     version: "1.0.0"
     doi: "10.5281/zenodo.24432612"
