@@ -1384,15 +1384,21 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "duckdb", specifier = ">=2.0.0" },
+    { name = "duckdb", marker = "sys_platform != 'emscripten'", specifier = ">=2.0.0" },
+    { name = "duckdb", marker = "sys_platform == 'emscripten'", specifier = ">=1.5.1" },
     { name = "marimo", specifier = ">=0.25.2" },
-    { name = "matplotlib", specifier = ">=3.11.2" },
-    { name = "numpy", specifier = ">=2.5.4" },
-    { name = "pandas", specifier = ">=3.1.0" },
+    { name = "matplotlib", marker = "sys_platform != 'emscripten'", specifier = ">=3.11.2" },
+    { name = "matplotlib", marker = "sys_platform == 'emscripten'", specifier = ">=3.10.8" },
+    { name = "numpy", marker = "sys_platform != 'emscripten'", specifier = ">=2.5.4" },
+    { name = "numpy", marker = "sys_platform == 'emscripten'", specifier = ">=2.4.3" },
+    { name = "pandas", marker = "sys_platform != 'emscripten'", specifier = ">=3.1.0" },
+    { name = "pandas", marker = "sys_platform == 'emscripten'", specifier = ">=3.0.2" },
     { name = "plotly", specifier = ">=6" },
-    { name = "pyarrow", specifier = ">=26.0.1" },
+    { name = "pyarrow", marker = "sys_platform != 'emscripten'", specifier = ">=26.0.1" },
+    { name = "pyarrow", marker = "sys_platform == 'emscripten'", specifier = ">=22.0.0" },
     { name = "reader-data", editable = "framework" },
-    { name = "scipy", specifier = ">=1.18.1" },
+    { name = "scipy", marker = "sys_platform != 'emscripten'", specifier = ">=1.18.1" },
+    { name = "scipy", marker = "sys_platform == 'emscripten'", specifier = ">=1.17.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -1768,13 +1774,16 @@ version = "0.1.0"
 source = { editable = "framework" }
 dependencies = [
     { name = "duckdb" },
-    { name = "fsspec", extra = ["http"] },
+    { name = "fsspec" },
+    { name = "fsspec", extra = ["http"], marker = "sys_platform != 'emscripten'" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "duckdb", specifier = ">=2.0.0" },
-    { name = "fsspec", extras = ["http"], specifier = ">=2026.9.0" },
+    { name = "duckdb", marker = "sys_platform != 'emscripten'", specifier = ">=2.0.0" },
+    { name = "duckdb", marker = "sys_platform == 'emscripten'", specifier = ">=1.5.1" },
+    { name = "fsspec", marker = "sys_platform == 'emscripten'", specifier = ">=2026.3.0" },
+    { name = "fsspec", extras = ["http"], marker = "sys_platform != 'emscripten'", specifier = ">=2026.9.0" },
 ]
 
 [[package]]

@@ -6,7 +6,7 @@ PPDS contains barefoot standing, walking and running plantar pressure recordings
 
 ## Explore the dataset
 
-The example notebooks show saved results in your browser. To explore a different trial, run the explorer locally. It reads the selected data directly from PPDS 1.0.0 on Zenodo.
+Open an example to see its saved results and Python code. Choose **Edit in browser** to run it with WebAssembly, or **Open in molab** to use a cloud Python session. Browser pressure examples use all 164 trials from four participants. The participant and scan examples cover all 95. To run the explorer locally against the full Zenodo release:
 
 ```bash
 git clone https://github.com/BMClab/ppds.git

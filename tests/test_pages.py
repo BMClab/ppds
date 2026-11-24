@@ -11,6 +11,7 @@ def test_pages_rebuilds_executes_and_indexes_examples(tmp_path, monkeypatch):
     from scripts import build_pages
 
     monkeypatch.setattr(build_pages, "ROOT", tmp_path)
+    monkeypatch.setenv("GITHUB_SHA", "a" * 40)
     monkeypatch.setattr(build_pages, "GUIDES", (Path("README.md"), build_pages.CATALOG))
     examples = tmp_path / "examples"
     examples.mkdir()
@@ -34,6 +35,12 @@ def _():
     assert 'href="examples/index.html"' in (site / "index.html").read_text()
     page = site / "notebooks/demo.html"
     assert "saved 42" in page.read_text()
+    editor = site / "edit/demo.html"
+    assert "marimo" in editor.read_text()
+    assert 'href="../edit/demo.html"' in page.read_text()
+    ref = f"BMClab/ppds/blob/{'a' * 40}/examples/demo.py"
+    assert f'href="https://molab.marimo.io/github/{ref}"' in page.read_text()
+    assert f'href="https://marimo.app/github.com/{ref}"' in page.read_text()
     for subpage in (site / "examples/index.html", page):
         html = subpage.read_text()
         assert 'href="../index.html"' in html
@@ -47,6 +54,7 @@ def _():
     updated = page.read_text()
     assert "saved 49" in updated and "saved 42" not in updated
     assert (site / "notebooks/demo.py").read_bytes() == demo.read_bytes()
+    assert (site / "edit/another.html").is_file()
     assert (
         'href="../notebooks/another.html"' in (site / "examples/index.html").read_text()
     )

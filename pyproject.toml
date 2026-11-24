@@ -12,15 +12,21 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "duckdb>=2.0.0",
+    "duckdb>=2.0.0; sys_platform != 'emscripten'",
+    "duckdb>=1.5.1; sys_platform == 'emscripten'",
     "marimo>=0.25.2",
-    "matplotlib>=3.11.2",
-    "numpy>=2.5.4",
-    "pandas>=3.1.0",
+    "matplotlib>=3.11.2; sys_platform != 'emscripten'",
+    "matplotlib>=3.10.8; sys_platform == 'emscripten'",
+    "numpy>=2.5.4; sys_platform != 'emscripten'",
+    "numpy>=2.4.3; sys_platform == 'emscripten'",
+    "pandas>=3.1.0; sys_platform != 'emscripten'",
+    "pandas>=3.0.2; sys_platform == 'emscripten'",
     "plotly>=6",
-    "pyarrow>=26.0.1",
+    "pyarrow>=26.0.1; sys_platform != 'emscripten'",
+    "pyarrow>=22.0.0; sys_platform == 'emscripten'",
     "reader-data>=0.1.0,<0.2",
-    "scipy>=1.18.1",
+    "scipy>=1.18.1; sys_platform != 'emscripten'",
+    "scipy>=1.17.1; sys_platform == 'emscripten'",
 ]
 
 [project.urls]

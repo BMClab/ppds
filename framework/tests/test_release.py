@@ -65,3 +65,32 @@ def test_declared_flat_filename_wins_when_default_name_also_exists(tmp_path):
     duckdb.sql("SELECT 17 AS k").to_parquet(str(tmp_path / "published.parquet"))
     duckdb.sql("SELECT 25 AS k").to_parquet(str(tmp_path / "tables_measurements.parquet"))
     assert Release.local(tmp_path).table("measurements").fetchall() == [(17,)]
+
+
+def test_browser_reader_reuses_byte_ranges_and_distinguishes_sources(tmp_path, monkeypatch):
+    from reader_data import _browser
+
+    payloads = {}
+    for value in (13, 27):
+        path = tmp_path / f"{value}.parquet"
+        duckdb.sql(f"SELECT {value} AS measurement").to_parquet(str(path))
+        payloads[f"https://example.org/{value}/table.parquet"] = path.read_bytes()
+    reads = []
+
+    def fetch(url, start=None, stop=None):
+        reads.append((url, start, stop))
+        return payloads[url][start:stop]
+
+    monkeypatch.setattr(_browser, "_fetch", fetch)
+    _browser._block.cache_clear()
+    fs = _browser.ReleaseFileSystem()
+    with duckdb.connect() as con:
+        con.register_filesystem(fs)
+        for url, data in payloads.items():
+            name = fs.resource(url, len(data))
+            assert con.read_parquet(name).fetchall()[0][0] == int(url.split("/")[-2])
+            with _browser.open_http(url, len(data)) as stream:
+                stream.seek(-4, 2)
+                assert stream.read() == b"PAR1"
+    assert reads == [(url, 0, len(data)) for url, data in payloads.items()]
+    _browser._block.cache_clear()

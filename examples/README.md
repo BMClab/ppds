@@ -1,6 +1,14 @@
 # PPDS example notebooks
 
-Start with the participant summary, trial explorer or 3D scans. These three examples can read PPDS 1.0.0 directly from Zenodo. Replace `run` with `edit` to inspect the Python cells.
+Start with the participant summary, trial explorer or 3D scans. Each saved page includes the code and four options:
+
+- **Edit in browser** starts the editable notebook on GitHub Pages. **Open in marimo.app** opens a hosted WebAssembly editor. The first launch downloads Python and its packages. Use **Run all** if the cells are waiting.
+- **Open in molab** opens the notebook preview. Start a cloud session there to work with the full release.
+- **Download .py** saves the exact notebook source.
+
+The browser participant tables and scan selector cover all 95 participants. Pressure analyses use an 8.5 MB sample with all 164 trials from s001, s005, s055 and s058. Cohort statistics in those browser examples describe these four participants. The saved pages, molab and local Python use the full release. The conversion example uses synthetic data everywhere.
+
+To run locally, use `run` to interact with the notebook or `edit` to change its cells.
 
 ```bash
 uv run marimo run examples/participant_summary.py -- --zenodo 24432612

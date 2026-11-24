@@ -1,6 +1,7 @@
 """DuckDB access to named Parquet resources in a local or hosted data release."""
 
 import json
+import sys
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path, PurePosixPath
@@ -76,6 +77,10 @@ class Release:
     def _open(self, target, size):
         if isinstance(self.root, Path):
             return open(target, "rb")
+        if sys.platform == "emscripten":
+            from ._browser import open_http
+
+            return open_http(target, size)
         http = fsspec.filesystem("http")
         return http.open(target, "rb", block_size=64 * 1024, cache_type="readahead", size=size)
 
@@ -119,7 +124,16 @@ class Release:
         if PurePosixPath(self.metadata["resources"][name]["path"]).suffix.lower() != ".parquet":
             raise ValueError(f"Resource {name!r} is not a Parquet table")
         con = connection if connection is not None else duckdb.connect()
-        return con.read_parquet(self.resource_location(name), hive_partitioning=False)
+        if sys.platform == "emscripten" and isinstance(self.root, str):
+            from ._browser import ReleaseFileSystem
+
+            fs = ReleaseFileSystem()
+            if not con.filesystem_is_registered(fs.protocol):
+                con.register_filesystem(fs)
+            path = fs.resource(self.resource_location(name), self.metadata["resources"][name].get("bytes"))
+        else:
+            path = self.resource_location(name)
+        return con.read_parquet(path, hive_partitioning=False)
 
     def connect(self, names=None):
         """Open a SQL session with views for the requested (default: all) Parquet resources.

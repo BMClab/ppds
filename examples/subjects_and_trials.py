@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "marimo>=0.25.2",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/796e7d1844209f46b787dc7a8b7442e3f8fe5961/reader_data-0.1.0-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/796e7d1844209f46b787dc7a8b7442e3f8fe5961/ppds-0.1.0-py3-none-any.whl",
+# ]
+# ///
+
 import marimo
 
 __generated_with = "0.25.2"
@@ -35,6 +44,8 @@ def _():
     import pandas as pd
 
     from ppds import dataset as ds
+
+    ds.use_notebook(mo.cli_args().get("zenodo"))
 
     CONDITIONS = {"ss": "quiet standing", "ws": "walking, slow", "wc": "walking, comfortable", "wf": "walking, fast", "rc": "running, comfortable"}
     plt.rcParams.update({"axes.grid": True, "grid.color": "0.9", "axes.spines.top": False, "axes.spines.right": False})

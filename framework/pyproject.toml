@@ -11,7 +11,12 @@ authors = [
     { name = "Marcos Duarte" },
 ]
 requires-python = ">=3.12"
-dependencies = ["duckdb>=2.0.0", "fsspec[http]>=2026.9.0"]
+dependencies = [
+    "duckdb>=2.0.0; sys_platform != 'emscripten'",
+    "duckdb>=1.5.1; sys_platform == 'emscripten'",
+    "fsspec[http]>=2026.9.0; sys_platform != 'emscripten'",
+    "fsspec>=2026.3.0; sys_platform == 'emscripten'",
+]
 
 [project.urls]
 Repository = "https://github.com/BMClab/ppds/tree/main/framework"

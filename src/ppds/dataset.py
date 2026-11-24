@@ -11,7 +11,9 @@ are available in trials(). SQL sessions opened by connect() support the
 same logical tables as these helpers.
 """
 
+import os
 import re
+import sys
 import zipfile
 from pathlib import Path
 
@@ -45,6 +47,26 @@ def use_zenodo(record):
     """Use the public release in a numbered Zenodo record."""
     global _source
     _source = reader_data.Release.zenodo(record)
+
+
+def use_notebook(record=None, *, pressure_sample=False):
+    """Select an explicit record, a local release, or the published PPDS showcase."""
+    if record is not None:
+        use_zenodo(record)
+    elif os.environ.get("PPDS_DATA") or (local_data_dir() / "metadata.json").is_file():
+        use_local()
+    elif sys.platform == "emscripten" and pressure_sample:
+        import marimo as mo
+
+        from ._browser_sample import load
+
+        use_local(load().name)
+        mo.output.append(mo.md(
+            "**Browser sample:** all 164 trials for four participants "
+            "(s001, s005, s055, s058). Open in molab or run locally for the full 95-participant release."
+        ))
+    else:
+        use_zenodo(24432612)
 
 
 def location(rel):

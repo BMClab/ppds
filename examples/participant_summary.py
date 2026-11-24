@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "marimo>=0.25.2",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/796e7d1844209f46b787dc7a8b7442e3f8fe5961/reader_data-0.1.0-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/796e7d1844209f46b787dc7a8b7442e3f8fe5961/ppds-0.1.0-py3-none-any.whl",
+# ]
+# ///
+
 import marimo
 
 __generated_with = "0.25.2"
@@ -15,8 +24,8 @@ def _():
 
     from ppds import dataset as ds
 
-    if _record := mo.cli_args().get("zenodo"):
-        ds.use_zenodo(_record)
+    ds.use_notebook(mo.cli_args().get("zenodo"))
+
     return Line2D, MaxNLocator, ds, mo, np, pd, plt
 
 

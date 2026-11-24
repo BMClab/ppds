@@ -139,8 +139,11 @@ def build(site):
         )
 
     (site / "notebooks").mkdir()
+    (site / "edit").mkdir()
+    revision = os.environ.get("GITHUB_SHA", "main")
     for source in sorted(notebooks):
         page = site / pages[source]
+        editor = site / "edit" / page.name
         subprocess.run(
             [
                 sys.executable,
@@ -156,12 +159,22 @@ def build(site):
             cwd=ROOT,
             check=True,
         )
+        subprocess.run(
+            [sys.executable, "-m", "marimo", "export", "html-wasm", str(ROOT / source),
+             "--mode", "edit", "--single-file", "-o", str(editor)],
+            cwd=ROOT,
+            check=True,
+        )
         shutil.copyfile(ROOT / source, page.with_suffix(".py"))
+        blob = f"BMClab/ppds/blob/{quote(revision, safe='')}/{quote(source.as_posix())}"
         nav = (
             f'<nav aria-label="Notebook navigation" style="position:relative;z-index:1;'
             f'padding:.5rem 1rem;background:Canvas;color:CanvasText;font:1rem system-ui">'
             f'<a href="../index.html">PPDS home</a> · <a href="../examples/index.html">All examples</a> · {SOURCE_LINK} · '
-            f'Saved outputs · <a href="{quote(source.name)}" download>Download .py</a></nav>'
+            f'<a href="../edit/{quote(editor.name)}">Edit in browser</a> · '
+            f'<a href="https://molab.marimo.io/github/{blob}">Open in molab</a> · '
+            f'<a href="https://marimo.app/github.com/{blob}">Open in marimo.app</a> · '
+            f'<a href="{quote(source.name)}" download>Download .py</a></nav>'
         )
         document = page.read_text()
         if document.count("<body>") != 1:

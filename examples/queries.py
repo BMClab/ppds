@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "marimo>=0.25.2",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/796e7d1844209f46b787dc7a8b7442e3f8fe5961/reader_data-0.1.0-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/796e7d1844209f46b787dc7a8b7442e3f8fe5961/ppds-0.1.0-py3-none-any.whl",
+# ]
+# ///
+
 import marimo
 
 __generated_with = "0.25.2"
@@ -33,6 +42,8 @@ def _():
     import matplotlib.pyplot as plt
 
     from ppds import dataset as ds
+
+    ds.use_notebook(mo.cli_args().get("zenodo"), pressure_sample=True)
 
     con = ds.connect()
     SPEED = {"ws": "slow", "wc": "comfortable", "wf": "fast", "rc": "running"}
