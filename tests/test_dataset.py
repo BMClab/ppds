@@ -462,3 +462,19 @@ def test_small_release_selects_one_trial_and_one_mesh_over_http(tmp_path):
                 assert 0 < server.sent[file] < (tmp_path / file).stat().st_size // 4
         finally:
             dataset.use_local()
+
+
+def test_notebook_source_prefers_explicit_record_then_local_release(tmp_path, monkeypatch):
+    monkeypatch.setenv("PPDS_DATA", str(tmp_path))
+    monkeypatch.setattr(dataset, "_source", dataset._source)
+    dataset.use_notebook()
+    assert dataset.location("trials.parquet") == str(tmp_path / "trials.parquet")
+    dataset.use_notebook(12345)
+    assert dataset.location("trials.parquet").endswith("12345/files/trials.parquet/content")
+    monkeypatch.delenv("PPDS_DATA")
+    monkeypatch.setattr(dataset, "local_data_dir", lambda: tmp_path)
+    dataset.use_notebook()
+    assert dataset.location("trials.parquet").endswith("24432612/files/trials.parquet/content")
+    (tmp_path / "metadata.json").write_text("{}")
+    dataset.use_notebook()
+    assert dataset.location("trials.parquet") == str(tmp_path / "trials.parquet")

@@ -58,6 +58,8 @@ jobs:
         run: uv run --locked pytest -q
       - name: Build the site and execute the examples
         run: uv run --locked python scripts/build_pages.py
+      - name: Exercise the cohort, playback and scan controls in Chrome
+        run: uv run --no-project --script scripts/check_browser_examples.py _site
       - name: Upload the site
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
