@@ -15,6 +15,16 @@ When files are served from Zenodo, each feature filename has the prefix `feature
 
 Verify a local download with `uv run python scripts/verify_release.py --data /path/to/download`. The verifier checks file hashes, scan archive contents and consistency among the measurement tables. [PPDS 1.0.0 on Zenodo](https://doi.org/10.5281/zenodo.24432612)
 
+## Quiet-standing peak-pressure maps
+
+The [standing peak maps](features/standing_peak_maps.parquet) in this repository give each sensor’s maximum pressure (kPa) over the 100 frames of a quiet-standing trial. Each of the 95 maps retains the original platform coordinates and labels each loaded sensor by foot. Omitted cells have zero pressure. For one bilateral map, use the toolkit function `ds.peak_image(subject, "ss", 1)`.
+
+To reproduce the complete Parquet file from the PPDS 1.0.0 download, run the [build script](../scripts/build_standing_peak_maps.py) from the repository root.
+
+```sh
+uv run --locked python scripts/build_standing_peak_maps.py /path/to/download data/features
+```
+
 ## Participants and trials
 
 Use `subjects()` or the SQL view `subjects` for one row per participant. The physical trial table repeats the participant columns on each person's trials, which allows cohort selection directly from one Parquet file. Participant codes range from `s001` to `s095`. Trial numbers start at one within each participant and condition. The unique `trial_id` joins pressure and pressure-derived features to the trial table.

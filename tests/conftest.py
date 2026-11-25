@@ -86,7 +86,7 @@ def range_server(files):
 @pytest.fixture(scope="session")
 def data_root():
     root = local_data_dir()
-    if not any(root.rglob("*.parquet")) and not (root / "scans.zip").exists():
+    if not any((root / name).exists() for name in ("metadata.json", "trials.parquet", "pressure.parquet", "scans.zip")):
         pytest.skip("requires a prepared PPDS release (set PPDS_DATA to its directory)")
     return root
 
