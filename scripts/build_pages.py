@@ -5,7 +5,6 @@ import os
 import shutil
 import subprocess
 import sys
-from html import escape
 from html.parser import HTMLParser
 from io import StringIO
 from pathlib import Path
@@ -168,7 +167,7 @@ def build(site):
         md = markdown.Markdown(extensions=["tables", "fenced_code", "toc"])
         md.treeprocessors.register(PageLinks(guide, pages, notebooks, revision), "site-links", 1)
         body = md.convert((ROOT / guide).read_text(encoding="utf-8"))
-        title = escape(md.toc_tokens[0]["name"])
+        title = md.toc_tokens[0]["name"]  # The toc extension already escapes HTML.
         page = site / pages[guide]
         page.parent.mkdir(parents=True, exist_ok=True)
         nav = ""

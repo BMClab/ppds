@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       PPDS_DATA: ${{ github.workspace }}/.pages-data
       MPLBACKEND: Agg
@@ -27,6 +28,7 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
+          version: '0.13.5'
           python-version: '3.14'
           enable-cache: true
       - run: uv sync --locked
@@ -78,6 +80,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write

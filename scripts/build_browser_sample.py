@@ -1,4 +1,4 @@
-"""Build the browser pressure sample from the seven verified PPDS 1.0.0 files."""
+"""Build the browser pressure sample from a PPDS 1.0.0 download with verified Parquet tables."""
 
 import argparse
 import hashlib
