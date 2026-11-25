@@ -124,6 +124,17 @@ def test_segment_closing_iterations(closing, components):
     np.testing.assert_array_equal(np.sum(feet, axis=0), image)
 
 
+@pytest.mark.parametrize("closing", [0, 1, 2, True])
+def test_segment_closing_keeps_footprints_on_the_image_border(closing):
+    image = np.zeros((12, 14))
+    image[0:4, 0:3] = 5
+    image[0:4, 9:14] = 3
+    image[11, 6] = 1
+    feet = reg.segment(image, closing=closing)
+    np.testing.assert_array_equal(np.sum(feet, axis=0), image)
+    assert len(feet) == 3
+
+
 @pytest.mark.parametrize(("closing", "error"), [(-1, ValueError), (0.5, TypeError)])
 def test_segment_requires_nonnegative_integer_closing(closing, error):
     with pytest.raises(error):

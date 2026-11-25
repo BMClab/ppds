@@ -12,15 +12,22 @@ def segment(I, threshold=0, n_min=1, closing=0):
 
     Keep regions with at least n_min original above-threshold pixels.
     closing is the number of closing iterations (zero skips closing). For
-    compatibility, boolean True uses two iterations. Pixels added by closing
-    connect regions but do not contribute to their size or pressure.
+    compatibility, boolean True uses two iterations; in 0.1.0 any truthy value,
+    including 1, used two. Pixels added by closing connect regions but do not
+    contribute to their size or pressure, and closing keeps every original
+    above-threshold pixel, including those on the image border.
     """
     iterations = 2 * int(closing) if isinstance(closing, (bool, np.bool_)) else index(closing)
     if iterations < 0:
         raise ValueError("closing must be a nonnegative number of iterations")
     s = ndimage.generate_binary_structure(2, 2)  # features connected even if they touch diagonally
     active = I > threshold
-    regions = ndimage.binary_closing(active, structure=s, iterations=iterations) if iterations else active
+    regions = active
+    if iterations:
+        # Pad so the erosion step does not treat the image border as background.
+        padded = np.pad(active, iterations)
+        closed = ndimage.binary_closing(padded, structure=s, iterations=iterations)
+        regions = closed[iterations:-iterations, iterations:-iterations] | active
     labels, n = ndimage.label(regions, structure=s)
     counts = np.bincount(labels[active], minlength=n + 1)
     return [np.where((labels == i) & active, I, 0) for i in range(1, n + 1) if counts[i] >= n_min]
