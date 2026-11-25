@@ -40,7 +40,7 @@ def _():
         "ws": "Slow walking",
         "wf": "Fast walking",
         "rc": "Comfortable running",
-        "ss": "Quiet stance",
+        "ss": "Quiet standing",
     }
     foot_names = {"L": "Left", "R": "Right"}
     return ds, foot_names, mo, np, plt, pressure_player, tasks
@@ -168,7 +168,7 @@ def _(contacts, foot_names, mo):
     if contacts.empty:
         contact_picker = None
         _display = mo.md(
-            "Quiet stance records continuous support. The plots show the full standing trial."
+            "Quiet standing records continuous support. The plots show the full standing trial."
         )
     else:
         _options = {
@@ -216,7 +216,7 @@ def _(contacts, foot_names, mo):
                     show_column_summaries=False,
                 ),
                 mo.md(
-                    "The platform y bounds are the lowest and highest loaded sensor centers along the walkway."
+                    "The platform y bounds are the lowest and highest loaded sensor centres along the walkway."
                 ),
                 contact_picker,
             ]
@@ -240,7 +240,7 @@ def _(mo):
     feature = mo.ui.dropdown(
         {
             "Vertical force": [("grf_z", "Vertical force (N)")],
-            "Center of pressure": [("cop_x", "COP x (mm)"), ("cop_y", "COP y (mm)")],
+            "Centre of pressure": [("cop_x", "COP x (mm)"), ("cop_y", "COP y (mm)")],
             "Contact area": [("contact_area", "Contact area (cm²)")],
             "Peak pressure": [("peak_pressure", "Peak pressure (kPa)")],
         },
@@ -263,7 +263,7 @@ def _(mo):
 def _(ds, feature, frames, hz, key, mo, np, plt, signal_styles, signals, step, trial_peak):
     mo.stop(not signals.value, mo.md("Select at least one signal to show the plot."))
     _series = feature.value
-    _show_cop = feature.selected_key == "Center of pressure"
+    _show_cop = feature.selected_key == "Centre of pressure"
     _fig, (_mat, *_traces) = plt.subplots(
         1 + len(_series),
         1,
@@ -297,7 +297,7 @@ def _(ds, feature, frames, hz, key, mo, np, plt, signal_styles, signals, step, t
     _mat.set(
         xlabel=_axis_labels[_across],
         ylabel=_axis_labels[_up],
-        title="Center of pressure over the trial peak-pressure map"
+        title="Centre of pressure over the trial peak-pressure map"
         if _show_cop
         else "Peak pressure over the trial",
     )

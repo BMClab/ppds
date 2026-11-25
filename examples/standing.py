@@ -16,12 +16,12 @@ app = marimo.App(width="medium")
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Quiet stance
+    # Quiet standing
 
     Each participant contributes the final 10 seconds of one quiet-standing trial.
     The pressure series contains 100 frames sampled at 10 Hz. Select a participant
-    to see the mean pressure map and the combined and per-foot center of pressure.
-    The coordinates refer to sensor centers in the platform plane.
+    to see the mean pressure map and the combined and per-foot centre of pressure.
+    The coordinates refer to sensor centres in the platform plane.
     """)
     return
 
@@ -58,7 +58,7 @@ def load_stance(ds, stance_trials, subject):
 
 @app.cell(hide_code=True)
 def _(hz, pressure, pressure_player, subject):
-    pressure_player(pressure, hz, title=f"{subject.value} · Quiet stance", stance=True)
+    pressure_player(pressure, hz, title=f"{subject.value} · Quiet standing", stance=True)
 
 
 @app.cell

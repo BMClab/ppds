@@ -49,7 +49,7 @@ def _(mo):
     mo.md(r"""
     ## Step 1: load data
 
-    We will use trial 1 of subject s001 running at comfortable speed from the data set
+    We will use trial 1 of participant s001 running at comfortable speed from the dataset
     (`data/pressure.parquet`), loaded with `ds.pressure`, which returns the pressure of every frame
     as an array (frames, 353, 64) in kPa. Because the Zebris resolution is 0.1 N/cm² = 1 kPa, the
     values are integers and are stored as 16-bit unsigned integers, saving memory. Here the array is
@@ -67,7 +67,8 @@ def _(ds):
 
 @app.cell(hide_code=True)
 def _(I3D, ds, pressure_player):
-    pressure_player(I3D, ds.FREQ_HZ, title="s001 · Comfortable running · Trial 1")
+    (_hz,) = ds.trials("s001", "rc").query("trial == 1").frequency_hz
+    pressure_player(I3D, float(_hz), title="s001 · Comfortable running · Trial 1")
 
 
 @app.cell(hide_code=True)

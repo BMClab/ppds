@@ -175,7 +175,7 @@ def _(CELL, condition, cop_x, cop_y, ds, np, plt, subject, trial):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Peak-pressure images of all trials of this subject and task:
+    Peak-pressure images of all trials of this participant and task:
     """)
     return
 

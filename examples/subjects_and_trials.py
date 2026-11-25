@@ -16,18 +16,18 @@ app = marimo.App(width="medium")
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # PPDS: subjects and trials
+    # PPDS: participants and trials
 
     > Laboratory of Biomechanics and Motor Control ([BMClab](https://github.com/BMClab)), Federal University of ABC, Brazil
 
     Participant characteristics appear on each trial row in `data/trials.parquet`.
-    Use `ds.subjects()` for one row per participant, or filter trials by participant characteristics. Only the data set folder `data/` is needed.
+    Use `ds.subjects()` for one row per participant, or filter trials by participant characteristics. Only the dataset folder `data/` is needed.
 
     ```python
     from ppds import dataset as ds
-    ds.subjects()                                   # all subjects
+    ds.subjects()                                   # all participants
     ds.subjects("AgeGroup == 'O' and Gender == 'F'")  # selection (pandas query)
-    ds.trials(condition="wf", query="Age > 60")     # fast-walking trials of the subjects older than 60
+    ds.trials(condition="wf", query="Age > 60")     # fast-walking trials of the participants older than 60
 
     ds.trials(condition="ss")                       # one stance trial per participant
     ```
@@ -56,7 +56,7 @@ def _():
 def _(ds, mo):
     subjects = ds.subjects()
     trials = ds.trials()
-    mo.md(f"**{len(subjects)}** subjects and **{len(trials):,}** pressure trials.")
+    mo.md(f"**{len(subjects)}** participants and **{len(trials):,}** pressure trials.")
     return subjects, trials
 
 
@@ -69,7 +69,7 @@ def _(mo, subjects):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Number of subjects by age group (Y: 18–50 completed years, decimal `Age` 18.4–50.7; O: ≥ 59 years, decimal `Age` 59.2–87.1) and sex, and their main characteristics:
+    Number of participants by age group (Y: 18–50 completed years, decimal `Age` 18.4–50.7; O: ≥ 59 years, decimal `Age` 59.2–87.1) and gender, and their main characteristics:
     """)
     return
 
@@ -86,10 +86,10 @@ def _(mo, pd, subjects):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Select subjects and trials
+    ## Select participants and trials
 
     Write a [pandas query](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html)
-    on the columns of the subject table (e.g. `Age > 60`, `Gender == 'F' and BMI < 25`,
+    on the columns of the participant table (e.g. `Age > 60`, `Gender == 'F' and BMI < 25`,
     `FootLenR > 25`) and choose a task:
     """)
     return
@@ -124,10 +124,10 @@ def _(mo):
     mo.md(r"""
     ## Data availability
 
-    The last columns of the subject table give the number of pressure trials per task.
-    `TrialsStanding` is 1 for every retained subject: one standing trial includes both feet.
-    All subjects have scans of both feet.
-    Subjects with fewer pressure trials than the protocol:
+    The last columns of the participant table give the number of pressure trials per task.
+    `TrialsStanding` is 1 for every retained participant: one standing trial includes both feet.
+    All participants have scans of both feet.
+    Participants with fewer pressure trials than the protocol:
     """)
     return
 

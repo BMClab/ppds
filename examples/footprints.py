@@ -21,7 +21,7 @@ def _(mo):
     > Laboratory of Biomechanics and Motor Control ([BMClab](https://github.com/BMClab)), Federal University of ABC, Brazil
 
     The Zenodo file `features_footprints.parquet` has the peak-pressure image of every footprint of the walking trials
-    after segmentation and registration: for each subject, task and foot, every footprint was aligned
+    after segmentation and registration: for each participant, task and foot, every footprint was aligned
     (centroid and principal axis) to the first footprint (`footprint` 0, the template). Values in kPa;
     only the cells with pressure are stored. Each image links to its gait contact through
     `(trial_id, contact)`. The contact row gives timing and loading on the original platform grid.
@@ -35,8 +35,8 @@ def _(mo):
                         filters=[("subject", "=", "s001"), ("condition", "=", "wc"), ("side", "=", "L")])
     ```
 
-    The registration aligns the footprints of one subject, task and foot; footprints of different
-    subjects or tasks have different templates and are not aligned to each other.
+    The registration aligns the footprints of one participant, task and foot; footprints of different
+    participants or tasks have different templates and are not aligned to each other.
     """)
     return
 
@@ -110,13 +110,13 @@ def _(ds, mo, side, speed, subject):
                 SELECT DISTINCT footprint, trial_id, contact FROM footprints
                 WHERE subject = ? AND condition = ? AND side = ?
             )
-            SELECT footprint, trial, contact, start_frame, stop_frame
-            FROM maps JOIN contacts USING (trial_id, contact)
-            ORDER BY footprint
+            SELECT m.footprint, c.trial, m.contact, c.start_frame, c.stop_frame, t.frequency_hz
+            FROM maps m JOIN contacts c USING (trial_id, contact) JOIN trials t USING (trial_id)
+            ORDER BY m.footprint
         """, [subject.value, speed.value, side.value]).df()
     _options = {
         f"Footprint {r.footprint} · Trial {r.trial} · Contact {r.contact}":
-            (int(r.trial), int(r.start_frame), int(r.stop_frame))
+            (int(r.trial), int(r.start_frame), int(r.stop_frame), float(r.frequency_hz))
         for r in _steps.itertuples()
     }
     mo.stop(not _options, mo.md("No registered footprints for this selection."))
@@ -127,10 +127,10 @@ def _(ds, mo, side, speed, subject):
 
 @app.cell(hide_code=True)
 def _(ds, pressure_player, side, source_contact, speed, subject):
-    _trial, _start, _stop = source_contact.value
+    _trial, _start, _stop, _hz = source_contact.value
     _series = ds.pressure(subject.value, speed.value, _trial, side=side.value)
     pressure_player(
-        _series[_start:_stop], ds.FREQ_HZ, first_frame=_start,
+        _series[_start:_stop], _hz, first_frame=_start,
         title=f"{subject.value} · {speed.selected_key} walking · {source_contact.selected_key} · {side.selected_key} foot",
     )
 

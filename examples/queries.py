@@ -16,7 +16,7 @@ app = marimo.App(width="medium")
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # PPDS: questions about the whole data set with SQL
+    # PPDS: questions about the whole dataset with SQL
 
     > Laboratory of Biomechanics and Motor Control ([BMClab](https://github.com/BMClab)), Federal University of ABC, Brazil
 
@@ -55,7 +55,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    **1. How many subjects and trials per task?**
+    **1. How many participants and trials per task?**
     """)
     return
 
@@ -63,7 +63,7 @@ def _(mo):
 @app.cell
 def _(con):
     con.sql("""
-        SELECT condition, count(DISTINCT subject) AS subjects, count(*) AS trials, round(avg(duration_s), 2) AS mean_duration_s
+        SELECT condition, count(DISTINCT subject) AS participants, count(*) AS trials, round(avg(duration_s), 2) AS mean_duration_s
         FROM trials GROUP BY condition ORDER BY condition
     """).df()
     return
@@ -72,7 +72,7 @@ def _(con):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    **2. Number and mean duration of selected gait trials by age group, sex and task.**
+    **2. Number and mean duration of selected gait trials by age group, gender and task.**
     """)
     return
 

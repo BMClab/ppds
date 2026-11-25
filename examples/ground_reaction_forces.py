@@ -16,7 +16,7 @@ app = marimo.App(width="medium")
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # PPDS: ground reaction forces of one subject at all walking speeds
+    # PPDS: ground reaction forces of one participant at all walking speeds
 
     > Laboratory of Biomechanics and Motor Control ([BMClab](https://github.com/BMClab)), Federal University of ABC, Brazil
 

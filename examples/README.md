@@ -23,9 +23,9 @@ Local runs use the release in `PPDS_DATA` or the checkout’s `data/` directory 
 | [participant_summary.py](participant_summary.py) | Participant characteristics, descriptive statistics and distributions, with one observation per participant |
 | [exploration.py](exploration.py) | Play a selected trial, compare combined and per-foot force, COP, area and peak pressure, and inspect gait contacts and registered walking footprints |
 | [scans.py](scans.py) | Rotate both feet and lower legs for a selected participant and compare their mesh geometry |
-| [subjects_and_trials.py](subjects_and_trials.py) | Subject table, selection of subjects and trials by their characteristics, data availability |
+| [subjects_and_trials.py](subjects_and_trials.py) | Participant table, selection of participants and trials by their characteristics, data availability |
 | [pressure.py](pressure.py) | Frame-by-frame gait pressure, vertical force, contact area, centre of pressure, and peak pressure across all gait trials (SQL) |
-| [standing.py](standing.py) | Mean stance pressure map, bilateral force, and combined and per-foot COP trajectories |
+| [standing.py](standing.py) | Mean quiet-standing pressure map, bilateral force, and combined and per-foot COP trajectories |
 | [footprints.py](footprints.py) | Registered footprints of one participant, mean and SD images, image area and peak pressure by walking speed |
 | [ground_reaction_forces.py](ground_reaction_forces.py) | Combined and per-foot vertical force in each walking trial, in newtons or body weights |
 | [queries.py](queries.py) | Cohort and trial queries, including contact times and impulses by task and side |
