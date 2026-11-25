@@ -6,7 +6,7 @@ reader uses PPDS_DATA when set. Otherwise it uses data/ in the source
 checkout or, for a wheel installation, in the current working directory.
 
 Pressure arrays are indexed [frame, y, x] and measured in integer kPa. Gait
-is sampled at 100 Hz and quiet stance at 10 Hz. Trial lengths and frequencies
+is sampled at 100 Hz and quiet standing at 10 Hz. Trial lengths and frequencies
 are available in trials(). SQL sessions opened by connect() support the
 same logical tables as these helpers.
 """
@@ -170,7 +170,7 @@ def _select_rows(con, name, *, order=None, **filters):
 
 
 def trials(subject=None, condition=None, query=None):
-    """One row per pressure trial, including quiet stance (ss) and participant descriptors."""
+    """One row per pressure trial, including quiet standing (ss) and participant descriptors."""
     if query is not None:
         if not isinstance(query, str):
             raise TypeError("Query must be a string")
@@ -242,7 +242,7 @@ def peak_image(subject, condition, trial):
 
 
 def standing(subject):
-    """The participant's 100-frame quiet-stance trial at 10 Hz, uint16 [frame, y, x] in kPa.
+    """The participant's 100-frame quiet-standing trial at 10 Hz, uint16 [frame, y, x] in kPa.
 
     The recording contains both feet in platform coordinates. standing(subject)[t]
     returns the pressure map at t / 10 seconds from the start of the selected segment.
@@ -283,7 +283,7 @@ def contacts(subject=None, condition=None, trial=None):
     """One row per gait contact, sorted by trial and chronological contact number.
 
     Contact numbers start at one in each trial. Zero-based start_frame is
-    inclusive and stop_frame is exclusive. Quiet stance has no contact rows.
+    inclusive and stop_frame is exclusive. Quiet standing has no contact rows.
     """
     _require_resource("contacts", "a gait contacts table")
     return _trial_measurements("contacts", subject, condition, trial, "trial_id, contact")
@@ -299,6 +299,7 @@ def contact_image(subject, condition, trial, contact, *, registered=False):
     """
     contact = _positive_int(contact, "Contact")
     trial_id, _ = _trial(subject, condition, trial)
+    trial = _trial_number(trial)  # report the selected number in errors
     if registered and condition not in ("ws", "wc", "wf"):
         raise LookupError("Registered contact images are available for walking trials")
     _require_resource("contacts", "a gait contacts table")
@@ -333,20 +334,29 @@ def contact_image(subject, condition, trial, contact, *, registered=False):
 
 
 def footprints(subject, condition, side):
-    """Registered maps [footprint, y, x] in kPa for one subject, task and foot. Index 0 is the template."""
+    """Registered maps [footprint, y, x] in kPa for one participant, task and foot. Index 0 is the template.
+
+    A recorded selection without registered footprints, such as quiet standing or
+    running, returns an empty array. An unknown participant or condition raises
+    LookupError.
+    """
     if not isinstance(subject, str) or not isinstance(condition, str):
         raise TypeError("Footprints require one participant and one condition")
     side = _side_code(side)
     _require_resource("footprints", "a registered footprints table")
-    with _source.connect("footprints") as con:
+    with _source.connect(("trials", "footprints")) as con:
         cells = _select_rows(con, "footprints", subject=subject, condition=condition, side=side)
+        if not len(cells) and con.execute(
+            "SELECT 1 FROM trials WHERE subject = ? AND condition = ? LIMIT 1", [subject, condition]
+        ).fetchall() == []:
+            raise LookupError(f"No trials for {subject} {condition}")
     grid = np.zeros((int(cells.footprint.max()) + 1 if len(cells) else 0, NROWS, NCOLS))
     grid[cells.footprint.to_numpy(), cells.y.to_numpy(), cells.x.to_numpy()] = cells.value
     return grid
 
 
 def scan(subject, side):
-    """Return one foot and lower-leg mesh as (vertices in meters, triangular faces).
+    """Return one foot and lower-leg mesh as (vertices in metres, triangular faces).
 
     Local extracted STLs are read directly. For a packaged release, only the named
     member of scans.zip is read, using byte ranges for HTTP.
@@ -374,7 +384,7 @@ def connect():
 
     The subjects view projects validated participant descriptors from trials. The
     pressure, pressure_features and gait contacts views include trial_id, subject,
-    condition and trial for joins. The standing view contains sparse quiet-stance
+    condition and trial for joins. The standing view contains sparse quiet-standing
     pressure cells. Releases predating the contacts table omit its view.
     """
     resources = _source.metadata["resources"]

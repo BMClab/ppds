@@ -123,6 +123,24 @@ def test_saved_zebris_trials_convert_with_the_recorded_sampling_rate(tmp_path):
         assert pq.read_table(converted / name).equals(pq.read_table(direct / name))
 
 
+def test_saving_zebris_trials_creates_outdir_and_never_overwrites_silently(tmp_path):
+    from ppds.zebris import read_zebris_text
+
+    raw = tmp_path / "s001wc.txt"
+    raw.write_bytes(files("ppds").joinpath("samples/demowc.txt").read_bytes())
+    outdir = tmp_path / "new" / "npz"
+    _, trials, _ = read_zebris_text(raw, outdir=outdir)
+    saved = sorted(outdir.glob("*.npz"))
+    assert [p.name for p in saved] == ["s001wc001.npz", "s001wc002.npz"] and len(trials) == 2
+    saved[1].write_bytes(b"keep")
+    with pytest.raises(FileExistsError, match="s001wc002.npz"):
+        read_zebris_text(raw, outdir=outdir)
+    assert saved[1].read_bytes() == b"keep"
+    read_zebris_text(raw, outdir=outdir, overwrite=True)
+    with np.load(saved[1]) as archive:
+        np.testing.assert_array_equal(archive["data"], trials[1])
+
+
 def test_ascii_timing_rotation_and_cleanup_are_applied_once(tmp_path):
     sample = files("ppds").joinpath("samples/demowc.txt").read_text()
     # Read the same two exercises with Windows line endings and a nonstandard filename.

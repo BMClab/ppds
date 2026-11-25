@@ -173,21 +173,32 @@ def open_zebris_trials(fname, subject=None):
         yield info, trials()
 
 
-def read_zebris_text(fname, subject=None, save=True, outdir=None):
-    """Read gait pressure ASCII. By default, save frame-first trial NPZs beside the source."""
+def read_zebris_text(fname, subject=None, save=True, outdir=None, *, overwrite=False):
+    """Read gait pressure ASCII. By default, save frame-first trial NPZs beside the source.
+
+    The archives are named {stem}{trial:03d}.npz in outdir, which is created when
+    missing. Existing archives raise FileExistsError unless overwrite is true; the
+    check runs before any archive is written.
+    """
     fname = Path(fname)
     outdir = Path(outdir) if outdir else fname.parent
     trials, log = [], []
     with open_zebris_trials(fname, subject) as (info, records):
-        for number, (data, warnings, _timing) in enumerate(records, 1):
+        for data, warnings, _timing in records:
             trials.append(data)
             log.extend(warnings)
-            if save:
-                np.savez_compressed(
-                    outdir / f"{fname.stem}{number:03d}.npz",
-                    data=data,
-                    array_axes=["frame", "y", "x"],
-                    sampling_rate_hz=info["freq"],
-                    pressure_units=info["platform"]["units"],
-                )
+    if save:
+        targets = [outdir / f"{fname.stem}{number:03d}.npz" for number in range(1, len(trials) + 1)]
+        existing = [path.name for path in targets if path.exists()]
+        if existing and not overwrite:
+            raise FileExistsError(f"Refusing to overwrite {', '.join(existing)} in {outdir}")
+        outdir.mkdir(parents=True, exist_ok=True)
+        for path, data in zip(targets, trials, strict=True):
+            np.savez_compressed(
+                path,
+                data=data,
+                array_axes=["frame", "y", "x"],
+                sampling_rate_hz=info["freq"],
+                pressure_units=info["platform"]["units"],
+            )
     return info, trials, log

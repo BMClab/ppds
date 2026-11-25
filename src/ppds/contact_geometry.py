@@ -97,7 +97,7 @@ def original_contact_peaks(pressure, contacts):
 def register_contact_peak(peak, template=None):
     """Pressure-center the original image, then align its binary shape to the centered template.
 
-    With no template, the centered image establishes footprint 0 for one subject,
+    With no template, the centered image establishes footprint 0 for one participant,
     walking condition and anatomical side. Use floating-point kPa throughout both
     linear interpolations. This reproduces the published PPDS convention using
     the grid-center pivot on pre-centered images.

@@ -80,7 +80,7 @@ def test_peak_image_is_max_over_frames(source):
 def test_standing_reads_full_platform_series(source):
     grid = dataset.standing("s001")
     assert grid.shape == (100, 353, 64) and grid.dtype == np.uint16
-    # Independent samples and nonzero count from the selected raw quiet-stance series.
+    # Independent samples and nonzero count from the selected raw quiet-standing series.
     assert grid[0, 29, 18] == 90
     assert grid[99, 30, 17] == 85
     assert np.count_nonzero(grid) == 25_643
@@ -171,6 +171,8 @@ def test_contact_image_reproduces_sensor_and_registered_peaks(source):
         with pytest.raises(LookupError, match="contact"):
             dataset.contact_image(*args)
     np.testing.assert_array_equal(dataset.contact_image(*key, "2"), measured)
+    with pytest.raises(LookupError, match=r"s001 wc trial 1$"):
+        dataset.contact_image("s001", "wc", np.uint8(1), 20)
     for bad in (1.5, True, "0", "abc"):
         with pytest.raises(ValueError, match="positive integer"):
             dataset.contact_image(*key, bad)
@@ -192,6 +194,9 @@ def test_footprints_of_one_side(source):
     assert f.shape == (20, 353, 64)
     np.testing.assert_array_equal(f, dataset.footprints("s001", "wc", "l"), strict=True)
     assert dataset.footprints("s001", "ss", "L").shape == (0, 353, 64)
+    for unknown in (("s999", "wc"), ("s001", "xx")):
+        with pytest.raises(LookupError, match="No trials"):
+            dataset.footprints(*unknown, "L")
 
 
 @pytest.mark.parametrize("selection", [
