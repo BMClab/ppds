@@ -11,9 +11,11 @@ authors:
   - family-names: Fukuchi
     given-names: Reginaldo K.
     orcid: "https://orcid.org/0000-0003-3113-7715"
+# Update version and date-released in the commit that removes the .dev suffix from pyproject.toml.
+# The concept DOI resolves to the latest version; Zenodo mints each version's DOI after tagging.
 version: "0.1.0"
 date-released: "2026-11-24"
-doi: "10.5281/zenodo.24490657"
+doi: "10.5281/zenodo.24490656"
 license: MIT
 repository-code: "https://github.com/BMClab/ppds"
 url: "https://bmclab.github.io/ppds/"
