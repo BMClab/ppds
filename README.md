@@ -25,7 +25,7 @@ frames = ds.pressure_features("s031", "wc", 1)
 peak = ds.peak_image("s031", "wc", 1)
 ```
 
-For offline analysis, download the seven files from Zenodo (470 MB total) and keep `scans.zip` intact. Set `PPDS_DATA` to the directory containing `metadata.json` or call `ds.use_local(directory)`. With pip, install both packages from the checkout using `python -m pip install ./framework .`. [Python API](src/ppds/README.md)
+For offline analysis, download the seven files from Zenodo (470 MB total) and keep `scans.zip` intact. Set `PPDS_DATA` to the directory containing `metadata.json` or call `ds.use_local(directory)`. With pip, install both packages from the checkout using `python -m pip install ./framework .`. PPDS is not published on PyPI, and `pip install ppds` installs an unrelated project. [Python API](src/ppds/README.md)
 
 ## Coverage
 
