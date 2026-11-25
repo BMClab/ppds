@@ -13,6 +13,7 @@ from ppds import dataset
 from ppds.paths import local_data_dir
 from ppds.release_layout import (
     PRIVATE_REPORT_PATHS,
+    REFERENCE,
     SUBJECT_COLUMNS,
     TABLES,
     scan_member_count,
@@ -21,6 +22,9 @@ from ppds.release_layout import (
 )
 
 EXPECTED_COVERAGE = (95, 3312, 95, 883555, 3312, 3312)
+# The expected sizes, checksums and row counts come from the dictionary shipped with the
+# toolkit, not from the download, so edited files with a matching edited manifest fail.
+EXPECTED_METADATA = REFERENCE
 
 
 def verify_scans(path, resource):
@@ -230,6 +234,10 @@ def verify(data):
     data = data.resolve()
     source = Release.local(data)
     manifest = source.metadata
+    if EXPECTED_METADATA is not None and manifest != EXPECTED_METADATA:
+        raise ValueError(
+            "metadata.json differs from the PPDS 1.0.0 dictionary distributed with the toolkit"
+        )
     resources = manifest["resources"]
     validate_inventory(resources)
     if manifest.get("subject_columns") != list(SUBJECT_COLUMNS):

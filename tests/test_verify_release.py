@@ -25,6 +25,8 @@ def verifier(monkeypatch):
     monkeypatch.setattr(
         verify_release, "EXPECTED_COVERAGE", (2, 2, 0, 4, 2, 2), raising=False
     )
+    # These synthetic releases carry their own manifest instead of the PPDS 1.0.0 dictionary.
+    monkeypatch.setattr(verify_release, "EXPECTED_METADATA", None)
     return verify_release.verify
 
 
@@ -165,6 +167,41 @@ def test_verifies_custom_flat_filename(tmp_path, resources, verifier):
     resource["zenodo_filename"] = "measurements.parquet"
     write_manifest(tmp_path, resources)
     assert verifier(tmp_path)["verified"]
+
+
+def test_manifest_must_match_the_distributed_dictionary(tmp_path, resources, verifier, monkeypatch):
+    from scripts import verify_release
+
+    monkeypatch.setattr(verify_release, "EXPECTED_METADATA", json.loads((tmp_path / "metadata.json").read_text()))
+    assert verifier(tmp_path)["verified"]
+    # An edited table with an edited manifest is consistent with itself, but not with the reference.
+    resources["trials"]["rows"] += 1
+    write_manifest(tmp_path, resources)
+    with pytest.raises(ValueError, match="differs from the PPDS 1.0.0 dictionary"):
+        verifier(tmp_path)
+
+
+def test_verifier_uses_the_distributed_dictionary_by_default(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT))
+    from ppds.release_layout import REFERENCE
+    from scripts import verify_release
+
+    assert verify_release.EXPECTED_METADATA is REFERENCE
+    assert REFERENCE == json.loads((ROOT / "src/ppds/release_1_0_0.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("name", ["trials", "pressure", "contacts", "scans"])
+@pytest.mark.parametrize("damage", ["flip", "append"])
+def test_file_that_differs_from_its_manifest_entry(tmp_path, resources, verifier, name, damage):
+    path = tmp_path / resources[name]["zenodo_filename"]
+    payload = bytearray(path.read_bytes())
+    if damage == "flip":
+        payload[len(payload) // 2] ^= 0xFF
+    else:
+        payload += b"\0"
+    path.write_bytes(payload)
+    with pytest.raises(ValueError, match="Size or checksum mismatch"):
+        verifier(tmp_path)
 
 
 @pytest.mark.parametrize("override", [False, True])

@@ -35,12 +35,12 @@ TABLES = {
 }
 
 # Validate downloaded schemas against the dictionary distributed with the toolkit.
-_reference = json.loads(files("ppds").joinpath("release_1_0_0.json").read_text(encoding="utf-8"))
-SUBJECT_COLUMNS = tuple(_reference["subject_columns"])
+REFERENCE = json.loads(files("ppds").joinpath("release_1_0_0.json").read_text(encoding="utf-8"))
+SUBJECT_COLUMNS = tuple(REFERENCE["subject_columns"])
 TABLE_SCHEMAS = {
     name: pa.schema([
         (column, pa.type_for_alias(details["type"]))
-        for column, details in _reference["resources"][name]["columns"].items()
+        for column, details in REFERENCE["resources"][name]["columns"].items()
     ])
     for name in TABLES
 }
