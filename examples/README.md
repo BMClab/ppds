@@ -16,7 +16,7 @@ uv run marimo run examples/exploration.py
 uv run marimo run examples/scans.py
 ```
 
-Local runs use the release in `PPDS_DATA` or the checkout’s `data/` directory when available. Otherwise they read Zenodo record `24432612` automatically. To select that record even with a local release configured, append `-- --zenodo 24432612`. [Dataset on Zenodo](https://doi.org/10.5281/zenodo.24432612)
+Local runs use the release in `PPDS_DATA` or the checkout’s `data/` directory when available. Otherwise they read Zenodo record `24544192` automatically. To select that record even with a local release configured, append `-- --zenodo 24544192`. [Dataset on Zenodo](https://doi.org/10.5281/zenodo.24544192)
 
 | Notebook | What it shows |
 |---|---|

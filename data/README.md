@@ -1,6 +1,6 @@
 # PPDS release files
 
-PPDS includes 95 participants, 3,217 gait trials and 95 quiet-standing trials. Each Parquet file below has a corresponding DuckDB view through `ppds.dataset.connect()`. Column definitions, units, keys, file sizes and SHA-256 checksums are in the [machine-readable dictionary](../src/ppds/release_1_0_0.json).
+PPDS includes 95 participants, 3,217 gait trials and 95 quiet-standing trials. Each Parquet file below has a corresponding DuckDB view through `ppds.dataset.connect()`. Column definitions, units, keys, file sizes and SHA-256 checksums are in the [machine-readable dictionary](../src/ppds/release_1_1_0.json).
 
 | Resource | One observation | Contents |
 |---|---|---|
@@ -9,20 +9,18 @@ PPDS includes 95 participants, 3,217 gait trials and 95 quiet-standing trials. E
 | `scans.zip` | A binary STL member per foot | 190 separate foot and lower-leg meshes in metres. The reader can open a member such as `scans/s001l_foot.stl` directly from the archive. Extract the archive to obtain the individual STL files in `scans/`. |
 | `features/pressure_features.parquet` | A selected trial frame | Vertical force, centre of pressure, contact area and peak pressure for both feet together and each foot individually |
 | `features/contacts.parquet` | A walking or running foot contact | Side, frame interval, duration, peak pressure and force, vertical impulse, maximum contact area and longitudinal extent |
+| `features/contact_maps.parquet` | A loaded sensor during a walking or running contact | Peak pressure (kPa) and pressure–time integral (kPa·s) on the original platform grid |
+| `features/standing_maps.parquet` | A loaded sensor during a quiet-standing trial | Side, peak pressure (kPa) and pressure–time integral (kPa·s) over the 10 s trial |
 | `features/footprints.parquet` | A loaded pixel of a registered walking footprint | Side, footprint number, source trial and contact, image coordinates and interpolated peak pressure |
 
 When files are served from Zenodo, each feature filename has the prefix `features_`. The metadata records both its local path and its flat deposit filename.
 
-Verify a local download with `uv run python scripts/verify_release.py --data /path/to/download`. The verifier checks file hashes, scan archive contents and consistency among the measurement tables. [PPDS 1.0.0 on Zenodo](https://doi.org/10.5281/zenodo.24432612)
+Verify a local download with `uv run python scripts/verify_release.py --data /path/to/download`. The verifier checks file hashes, scan archive contents and consistency among the measurement tables, and it recomputes every pressure map and strike index from the sensor readings. [PPDS 1.1.0 on Zenodo](https://doi.org/10.5281/zenodo.24544192)
 
-## Quiet-standing peak-pressure maps
-
-The [standing peak maps](features/standing_peak_maps.parquet) in this repository give each sensor’s maximum pressure (kPa) over the 100 frames of a quiet-standing trial. Each of the 95 maps retains the original platform coordinates and labels each loaded sensor by foot. Omitted cells have zero pressure. For one bilateral map, use the toolkit function `ds.peak_image(subject, "ss", 1)`.
-
-To reproduce the complete Parquet file from the PPDS 1.0.0 download, run the [build script](../scripts/build_standing_peak_maps.py) from the repository root.
+PPDS 1.1.0 adds the two pressure-map tables and the `strike_index` column of `features/contacts.parquet`. Every other file is byte-identical to [PPDS 1.0.0](https://doi.org/10.5281/zenodo.24432612). To rebuild the additions from a 1.0.0 download, run the [build script](../scripts/build_release_1_1_0.py) from the repository root:
 
 ```sh
-uv run --locked python scripts/build_standing_peak_maps.py /path/to/download data/features
+uv run --locked python scripts/build_release_1_1_0.py /path/to/1.0.0 /path/to/1.1.0
 ```
 
 ## Participants and trials
@@ -54,10 +52,24 @@ Vertical force equals the sum of cell pressures multiplied by sensor area, with 
 | `peak_pressure`, `peak_grf_z` | Highest sensor pressure (kPa) and greatest vertical force (N) during the contact. |
 | `vertical_impulse`, `max_contact_area` | Sum of the frame forces for the contact divided by the sampling frequency (N·s), and largest simultaneously loaded area (cm²). |
 | `contact_y_min`, `contact_y_max` | Minimum and maximum loaded sensor-centre positions along the walkway (mm), measured on the original platform grid. |
+| `strike_index` | Centre of pressure on the first loaded frame, measured from the posterior edge of the contact footprint as a fraction of its length ([Cavanagh and Lafortune, 1980](https://doi.org/10.1016/0021-9290(80)90033-0)). Zero is the heel end and one the toe end. The footprint spans the outer sensor edges of every row loaded during the contact. |
 
 Each walking contact has one registered peak-pressure image. Use `(trial_id, contact)` to join its footprint pixels to the contact row. The `footprint` index starts at zero within each participant, walking speed and side. Index zero is that group's registration template. Image coordinates refer to the registered grid. To inspect the original sensor positions and pressure over time, select the same trial and side and slice `pressure[start_frame:stop_frame]`.
 
 To reproduce a stored footprint from its original sensor peak map, use `ppds.contact_geometry.register_contact_peak`. The first map establishes the template. For subsequent contacts, pass that template as the second argument. The procedure centers each map by its pressure-weighted centroid, then aligns its loaded region to the template using the center of the grid as the rotation pivot. For a new analysis on arbitrary images, `ppds.registration.register_pa` uses the source centroid as its pivot.
+
+## Pressure maps
+
+Each map row describes one loaded sensor on the original platform grid. Sensors that are never loaded during the interval are omitted and have zero pressure. `peak_pressure` is the sensor's highest reading. `pressure_time_integral` is the sum of the sensor's readings divided by the trial's `frequency_hz`, so unloaded frames count as zero. Mean pressure is not stored. It equals the integral divided by `contacts.contact_time` for a gait contact, or by `trials.duration_s` for quiet standing.
+
+| Table | Interval | Key |
+|---|---|---|
+| `contact_maps` | The contact's frames `[start_frame, stop_frame)` and only the contact's foot, for all 14,625 walking and running contacts | `(trial_id, contact, y, x)`; join `contacts` on `(trial_id, contact)` |
+| `standing_maps` | All 100 frames of a quiet-standing trial, both feet, with each sensor's `side` | `(trial_id, y, x)`; join `trials` on `trial_id` |
+
+The toolkit returns these maps as `[y, x]` arrays with `ds.contact_image(subject, condition, trial, contact, kind=...)` and `ds.standing_image(subject, kind=..., side=None)`, where `kind` is `"peak"`, `"pti"` or `"mean"`. The functions in `ppds.maps` compute the same quantities, and the strike index, from any `[frame, y, x]` series. Summed over a contact's sensors and multiplied by the sensor area, the pressure–time integral equals the contact's `vertical_impulse`.
+
+Registered footprints are released for walking only. Running strike patterns vary between participants, from rearfoot to forefoot landings (see `strike_index`), and running registration has not been checked for anatomical alignment. `ds.registered_footprints(subject, condition, side)` applies the walking procedure to any gait condition. It reproduces the released walking footprints exactly and registers running contacts experimentally.
 
 ## Example cohort query
 

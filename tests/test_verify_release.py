@@ -106,7 +106,18 @@ def resources(tmp_path):
         "max_contact_area": [8.469**2 / 100] * 2,
         "contact_y_min": [0.0] * 2,
         "contact_y_max": [0.0] * 2,
+        # The single loaded row spans [-0.5, 0.5], so its center lies halfway along the footprint.
+        "strike_index": [0.5] * 2,
     }
+    contact_maps = {
+        "trial_id": [0, 1],
+        "contact": [1, 1],
+        "y": [0, 0],
+        "x": [0, 0],
+        "peak_pressure": [1, 1],
+        "pressure_time_integral": [0.01] * 2,
+    }
+    standing_maps = {name: [] for name in TABLE_SCHEMAS["standing_maps"].names}
     footprints = {
         "subject": ["s001", "s002"],
         "condition": ["wc"] * 2,
@@ -124,6 +135,8 @@ def resources(tmp_path):
         ("pressure", pressure),
         ("pressure_features", frames),
         ("contacts", contacts),
+        ("contact_maps", contact_maps),
+        ("standing_maps", standing_maps),
         ("footprints", footprints),
     ):
         relative = (
@@ -177,7 +190,7 @@ def test_manifest_must_match_the_distributed_dictionary(tmp_path, resources, ver
     # An edited table with an edited manifest is consistent with itself, but not with the reference.
     resources["trials"]["rows"] += 1
     write_manifest(tmp_path, resources)
-    with pytest.raises(ValueError, match="differs from the PPDS 1.0.0 dictionary"):
+    with pytest.raises(ValueError, match="differs from the PPDS 1.1.0 dictionary"):
         verifier(tmp_path)
 
 
@@ -187,10 +200,10 @@ def test_verifier_uses_the_distributed_dictionary_by_default(monkeypatch):
     from scripts import verify_release
 
     assert verify_release.EXPECTED_METADATA is REFERENCE
-    assert REFERENCE == json.loads((ROOT / "src/ppds/release_1_0_0.json").read_text(encoding="utf-8"))
+    assert REFERENCE == json.loads((ROOT / "src/ppds/release_1_1_0.json").read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("name", ["trials", "pressure", "contacts", "scans"])
+@pytest.mark.parametrize("name", ["trials", "pressure", "contacts", "contact_maps", "scans"])
 @pytest.mark.parametrize("damage", ["flip", "append"])
 def test_file_that_differs_from_its_manifest_entry(tmp_path, resources, verifier, name, damage):
     path = tmp_path / resources[name]["zenodo_filename"]
@@ -218,7 +231,7 @@ def test_release_commands_select_and_report_directory(
     assert report["verified"] and report["data_dir"] == str(tmp_path)
 
 
-@pytest.mark.parametrize("name", ["scans", "contacts", "footprints"])
+@pytest.mark.parametrize("name", ["scans", "contacts", "contact_maps", "standing_maps", "footprints"])
 def test_required_resource_missing_from_manifest_and_directory(
     tmp_path, resources, verifier, name
 ):
@@ -322,6 +335,12 @@ def test_inconsistent_scan_archive(tmp_path, resources, verifier, damage):
         ("footprints", "trial_id", [1, 0], "footprint pixels or contact links"),
         ("footprints", "footprint", [1, 0], "footprint pixels or contact links"),
         ("footprints", "side", ["R", "L"], "footprint pixels or contact links"),
+        ("contacts", "strike_index", [0.4, 0.5], "Strike index"),
+        ("contacts", "strike_index", [None, 0.5], "Strike index"),
+        ("contact_maps", "peak_pressure", [2, 1], "Contact map mismatch"),
+        ("contact_maps", "pressure_time_integral", [0.02, 0.01], "Contact map mismatch"),
+        ("contact_maps", "x", [1, 0], "Contact map mismatch"),
+        ("contact_maps", "contact", [2, 1], "Contact map mismatch"),
     ],
 )
 def test_verifies_physical_rows(
@@ -402,6 +421,39 @@ def test_running_contact_is_one_uninterrupted_loaded_interval(verifier, split):
             verify_contacts(con)
 
 
+@pytest.mark.parametrize("damage", [None, "peak", "integral", "two_sides", "missing"])
+def test_standing_maps_reproduce_each_sensor_over_the_trial(verifier, damage):
+    from scripts.verify_release import verify_maps
+
+    # Two 10 Hz frames of one left-foot sensor: 4 and 6 kPa.
+    peak, integral, sides = 6, 1.0, ["L"]
+    if damage == "peak":
+        peak = 4
+    elif damage == "integral":
+        integral = 0.5
+    elif damage == "two_sides":
+        sides = ["L", "R"]
+    rows = [] if damage == "missing" else [(0, side, 3, 5, peak, integral) for side in sides]
+    with duckdb.connect() as con:
+        con.execute("CREATE TEMP TABLE trials AS SELECT 0 trial_id, 10 frequency_hz, 'ss' AS condition")
+        con.execute("""CREATE TEMP TABLE pressure AS SELECT 0 trial_id, unnest([0, 1]) frame, 3 y, 5 x,
+                       unnest([4, 6])::USMALLINT AS value, 'L' side""")
+        con.execute("""CREATE TEMP TABLE contacts (trial_id INTEGER, contact INTEGER, side VARCHAR,
+                       start_frame INTEGER, stop_frame INTEGER, peak_pressure INTEGER, vertical_impulse DOUBLE)""")
+        con.execute("""CREATE TEMP TABLE contact_maps (trial_id INTEGER, contact INTEGER, y INTEGER, x INTEGER,
+                       peak_pressure INTEGER, pressure_time_integral DOUBLE)""")
+        con.execute("""CREATE TEMP TABLE standing_maps (trial_id INTEGER, side VARCHAR, y INTEGER, x INTEGER,
+                       peak_pressure INTEGER, pressure_time_integral DOUBLE)""")
+        if rows:
+            con.executemany("INSERT INTO standing_maps VALUES (?, ?, ?, ?, ?, ?)", rows)
+        con.execute("CREATE TEMP MACRO agrees(a, b) AS coalesce(abs(a - b) <= 1e-8, a IS NULL AND b IS NULL)")
+        if damage is None:
+            verify_maps(con)
+        else:
+            with pytest.raises(ValueError, match="Standing map mismatch"):
+                verify_maps(con)
+
+
 @pytest.mark.parametrize("field", ["path", "zenodo_filename"])
 def test_two_logical_resources_require_two_files(tmp_path, resources, verifier, field):
     resources["footprints"][field] = resources["pressure_features"][field]
@@ -432,6 +484,8 @@ def test_cohort_accepts_changed_measurement_count_when_physical_tables_agree(
     for column in ("peak_grf_z", "max_contact_area", "vertical_impulse"):
         rows[0][column] *= 2
     changes["contacts"] = pa.Table.from_pylist(rows, schema=contacts.schema)
+    maps = pq.read_table(tmp_path / resources["contact_maps"]["zenodo_filename"])
+    changes["contact_maps"] = pa.concat_tables([maps.slice(0, 1), replace_values(maps.slice(0, 1), "x", [1]), maps.slice(1)])
     for name, table in changes.items():
         resource = resources[name]
         path = tmp_path / resource["zenodo_filename"]

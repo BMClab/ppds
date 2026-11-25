@@ -13,8 +13,8 @@ authors:
     orcid: "https://orcid.org/0000-0003-3113-7715"
 # Update version and date-released in the commit that removes the .dev suffix from pyproject.toml.
 # The concept DOI resolves to the latest version; Zenodo mints each version's DOI after tagging.
-version: "0.1.1"
-date-released: "2026-11-24"
+version: "0.2.0"
+date-released: "2026-11-25"
 doi: "10.5281/zenodo.24490656"
 license: MIT
 repository-code: "https://github.com/BMClab/ppds"
@@ -35,5 +35,5 @@ references:
     year: 2026
     publisher:
       name: Zenodo
-    version: "1.0.0"
-    doi: "10.5281/zenodo.24432612"
+    version: "1.1.0"
+    doi: "10.5281/zenodo.24544192"

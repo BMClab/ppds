@@ -1,4 +1,4 @@
-"""Verify the files and cross-check every pressure frame, gait contact and footprint link."""
+"""Verify the files and cross-check every pressure frame, gait contact, pressure map and footprint link."""
 
 import argparse
 import hashlib
@@ -16,6 +16,7 @@ from ppds.release_layout import (
     REFERENCE,
     SUBJECT_COLUMNS,
     TABLES,
+    VERSION,
     scan_member_count,
     validate_inventory,
     validate_table_schema,
@@ -230,13 +231,80 @@ def verify_footprints(con):
         )
 
 
+def verify_strike_index(con):
+    """Recompute each contact's strike index from the frame moments of its foot."""
+    invalid = con.execute("""
+        WITH extent AS (
+            SELECT c.trial_id, c.contact, min(m.ymin) AS ymin, max(m.ymax) AS ymax
+            FROM contacts c JOIN moments m
+              ON m.trial_id = c.trial_id AND m.support = c.side
+             AND m.frame >= c.start_frame AND m.frame < c.stop_frame
+            GROUP BY c.trial_id, c.contact
+        )
+        SELECT count(*) FROM contacts c LEFT JOIN extent e USING (trial_id, contact)
+        LEFT JOIN moments m ON m.trial_id = c.trial_id AND m.support = c.side AND m.frame = c.start_frame
+        WHERE e.ymin IS NULL OR m.load IS NULL OR NOT isfinite(c.strike_index)
+           OR NOT agrees(c.strike_index, (m.my / m.load - (e.ymin - 0.5)) / (e.ymax - e.ymin + 1))
+    """).fetchone()[0]
+    if invalid:
+        raise ValueError(f"Strike index mismatch in {invalid} gait contacts")
+
+
+def verify_maps(con):
+    """Recompute every map cell from the sensor readings and tie each map to its contact or trial."""
+    invalid = con.execute("""
+        WITH expected AS (
+            SELECT c.trial_id, c.contact, p.y, p.x, max(p.value) AS peak,
+                   sum(p.value::INTEGER)::DOUBLE / t.frequency_hz AS pti
+            FROM contacts c JOIN pressure p
+              ON p.trial_id = c.trial_id AND p.side = c.side
+             AND p.frame >= c.start_frame AND p.frame < c.stop_frame
+            JOIN trials t ON t.trial_id = c.trial_id
+            GROUP BY c.trial_id, c.contact, p.y, p.x, t.frequency_hz
+        )
+        SELECT count(*) FROM expected e FULL JOIN contact_maps m USING (trial_id, contact, y, x)
+        WHERE e.peak IS NULL OR m.peak_pressure IS DISTINCT FROM e.peak
+           OR NOT agrees(m.pressure_time_integral, e.pti)
+    """).fetchone()[0]
+    if invalid:
+        raise ValueError(f"Contact map mismatch in {invalid} sensor cells")
+    # The integral over the footprint is the contact's vertical impulse, and its peak the contact peak.
+    invalid = con.execute("""
+        WITH totals AS (
+            SELECT trial_id, contact, max(peak_pressure) AS peak,
+                   sum(pressure_time_integral) * (8.469 ^ 2 / 1000) AS impulse
+            FROM contact_maps GROUP BY trial_id, contact
+        )
+        SELECT count(*) FROM contacts c FULL JOIN totals m USING (trial_id, contact)
+        WHERE m.peak IS DISTINCT FROM c.peak_pressure
+           OR abs(m.impulse - c.vertical_impulse) > 1e-9 * greatest(1, abs(c.vertical_impulse))
+    """).fetchone()[0]
+    if invalid:
+        raise ValueError(f"Contact maps disagree with {invalid} gait contact summaries")
+    invalid = con.execute("""
+        WITH expected AS (
+            SELECT p.trial_id, p.side, p.y, p.x, max(p.value) AS peak,
+                   sum(p.value::INTEGER)::DOUBLE / t.frequency_hz AS pti
+            FROM pressure p JOIN trials t USING (trial_id) WHERE t.condition = 'ss'
+            GROUP BY p.trial_id, p.side, p.y, p.x, t.frequency_hz
+        ), keyed AS (
+            SELECT *, count(*) OVER (PARTITION BY trial_id, y, x) AS copies FROM standing_maps
+        )
+        SELECT count(*) FROM expected e FULL JOIN keyed m USING (trial_id, side, y, x)
+        WHERE e.peak IS NULL OR m.copies IS DISTINCT FROM 1 OR m.peak_pressure IS DISTINCT FROM e.peak
+           OR NOT agrees(m.pressure_time_integral, e.pti)
+    """).fetchone()[0]
+    if invalid:
+        raise ValueError(f"Standing map mismatch in {invalid} sensor cells")
+
+
 def verify(data):
     data = data.resolve()
     source = Release.local(data)
     manifest = source.metadata
     if EXPECTED_METADATA is not None and manifest != EXPECTED_METADATA:
         raise ValueError(
-            "metadata.json differs from the PPDS 1.0.0 dictionary distributed with the toolkit"
+            f"metadata.json differs from the PPDS {VERSION} dictionary distributed with the toolkit"
         )
     resources = manifest["resources"]
     validate_inventory(resources)
@@ -291,6 +359,8 @@ def verify(data):
         pressure_moments(con, resources["pressure"]["rows"])
         verify_frames(con)
         verify_contacts(con)
+        verify_strike_index(con)
+        verify_maps(con)
         verify_footprints(con)
         gait_trials, walking, running = con.execute("""
             SELECT count(DISTINCT trial_id), count(*) FILTER (WHERE condition IN ('ws', 'wc', 'wf')),
@@ -319,6 +389,8 @@ def verify(data):
         "gait_contacts": walking + running,
         "registered_walking_contacts": walking,
         "running_contacts": running,
+        "contact_map_cells": resources["contact_maps"]["rows"],
+        "standing_map_cells": resources["standing_maps"]["rows"],
         "unresolved_side_frames": {
             condition: unknown for condition, _, unknown in sides
         },

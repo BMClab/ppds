@@ -1,6 +1,6 @@
 [project]
 name = "reader-data"
-version = "0.1.1"
+version = "0.2.0"
 description = "Read named Parquet resources from a local or HTTP data release with DuckDB"
 readme = "src/reader_data/README.md"
 license = "MIT"

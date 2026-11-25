@@ -26,7 +26,9 @@ NROWS, NCOLS = 353, 64
 FREQ_HZ = 100.0
 CELL_CM = 0.8469
 TABLES = ("subjects", "trials", "standing", "footprints", "contacts",
-          "pressure", "pressure_features")
+          "pressure", "pressure_features", "contact_maps", "standing_maps")
+RECORD = 24544192  # PPDS 1.1.0 on Zenodo
+MAP_KINDS = ("peak", "pti", "mean")
 
 _source = reader_data.Release.local(local_data_dir())
 
@@ -66,7 +68,7 @@ def use_notebook(record=None, *, pressure_sample=False):
             "(s001, s005, s055, s058). Open in molab or run locally for the full 95-participant release."
         ))
     else:
-        use_zenodo(24432612)
+        use_zenodo(RECORD)
 
 
 def location(rel):
@@ -289,55 +291,154 @@ def contacts(subject=None, condition=None, trial=None):
     return _trial_measurements("contacts", subject, condition, trial, "trial_id, contact")
 
 
-def contact_image(subject, condition, trial, contact, *, registered=False):
-    """Return one gait contact's peak pressures in kPa as a [y, x] array.
+def _map_kind(kind):
+    if kind not in MAP_KINDS:
+        raise ValueError(f"Expected kind 'peak', 'pti' or 'mean', not {kind!r}")
+    return kind
+
+
+def _map_image(cells, kind, duration_s):
+    """Place sparse map cells on the platform grid: uint16 peaks or float64 kPa s and kPa."""
+    if kind == "peak":
+        image = np.zeros((NROWS, NCOLS), dtype=np.uint16)
+        image[cells["y"], cells["x"]] = cells["peak_pressure"]
+        return image
+    image = np.zeros((NROWS, NCOLS))
+    image[cells["y"], cells["x"]] = cells["pressure_time_integral"]
+    return image / duration_s if kind == "mean" else image
+
+
+def contact_image(subject, condition, trial, contact, *, registered=False, kind="peak"):
+    """Return one gait contact's pressure map as a [y, x] array.
 
     Contact numbers start at one within each trial. The default image uses the
     original platform grid and only sensors on the selected foot during its
-    contact interval. For walking, registered=True returns the aligned image
-    on the participant's template grid for that condition and side.
+    contact interval. kind selects the peak pressure in kPa ("peak"), the
+    pressure-time integral in kPa s ("pti") or the mean pressure in kPa over the
+    contact time ("mean"); unloaded frames count as zero. For walking,
+    registered=True returns the aligned peak-pressure footprint on the
+    participant's template grid for that condition and side.
     """
     contact = _positive_int(contact, "Contact")
+    kind = _map_kind(kind)
     trial_id, _ = _trial(subject, condition, trial)
     trial = _trial_number(trial)  # report the selected number in errors
     if registered and condition not in ("ws", "wc", "wf"):
         raise LookupError("Registered contact images are available for walking trials")
+    if registered and kind != "peak":
+        raise ValueError("Registered contact images contain peak pressures only")
     _require_resource("contacts", "a gait contacts table")
     if registered:
         _require_resource("footprints", "a registered footprints table")
-    name = "footprints" if registered else "pressure"
+        name = "footprints"
+    elif "contact_maps" in _source.metadata["resources"]:
+        name = "contact_maps"
+    else:
+        if kind != "peak":
+            _require_resource("contact_maps", "a contact maps table")
+        name = "pressure"
     with _source.connect(("contacts", name)) as con:
         step = con.execute(
-            "SELECT side, start_frame, stop_frame FROM contacts WHERE trial_id = ? AND contact = ?",
+            "SELECT side, start_frame, stop_frame, contact_time FROM contacts WHERE trial_id = ? AND contact = ?",
             [trial_id, contact],
         ).fetchone()
         if step is None:
             raise LookupError(f"No contact {contact} in {subject} {condition} trial {trial}")
-        side, start, stop = step
+        side, start, stop, contact_time = step
         if registered:
             cells = con.execute(
                 """SELECT y, x, value FROM footprints
                    WHERE subject = ? AND condition = ? AND side = ? AND trial_id = ? AND contact = ?""",
                 [subject, condition, side, trial_id, contact],
             ).fetchnumpy()
+        elif name == "contact_maps":
+            cells = con.execute(
+                """SELECT y, x, peak_pressure, pressure_time_integral FROM contact_maps
+                   WHERE trial_id = ? AND contact = ?""",
+                [trial_id, contact],
+            ).fetchnumpy()
         else:
             cells = con.execute(
-                """SELECT y, x, max(value) AS value FROM pressure
+                """SELECT y, x, max(value) AS peak_pressure FROM pressure
                    WHERE trial_id = ? AND side = ? AND frame >= ? AND frame < ? GROUP BY y, x""",
                 [trial_id, side, start, stop],
             ).fetchnumpy()
-    if not len(cells["value"]):
+    if not len(cells["y"]):
         raise LookupError(f"No {name} pixels for {subject} {condition} trial {trial}, contact {contact}")
-    image = np.zeros((NROWS, NCOLS), dtype=cells["value"].dtype)
-    image[cells["y"], cells["x"]] = cells["value"]
-    return image
+    if registered:
+        image = np.zeros((NROWS, NCOLS), dtype=cells["value"].dtype)
+        image[cells["y"], cells["x"]] = cells["value"]
+        return image
+    return _map_image(cells, kind, contact_time)
+
+
+def standing_image(subject, *, kind="peak", side=None):
+    """Return the participant's quiet-standing pressure map over the 10 s trial as a [y, x] array.
+
+    kind selects the peak pressure in kPa ("peak"), the pressure-time integral
+    in kPa s ("pti") or the mean pressure in kPa ("mean"); unloaded frames count
+    as zero. Pass side 'L' or 'R' to keep one foot's sensors. Both feet keep the
+    platform coordinates.
+    """
+    kind = _map_kind(kind)
+    if side is not None:
+        side = _side_code(side)
+    _require_resource("standing_maps", "a standing maps table")
+    trial_id, _ = _trial(subject, "ss", 1)
+    with _source.connect(("trials", "standing_maps")) as con:
+        (duration_s,) = con.execute("SELECT duration_s FROM trials WHERE trial_id = ?", [trial_id]).fetchone()
+        sql = "SELECT y, x, peak_pressure, pressure_time_integral FROM standing_maps WHERE trial_id = ?"
+        params = [trial_id]
+        if side is not None:
+            sql += " AND side = ?"
+            params.append(side)
+        cells = con.execute(sql, params).fetchnumpy()
+    return _map_image(cells, kind, duration_s)
+
+
+def registered_footprints(subject, condition, side):
+    """Register every contact of one participant, gait condition and foot; return [footprint, y, x] in kPa.
+
+    Footprint 0 is the pressure-centered first contact of the condition and
+    side, and later contacts are aligned to it as in the released walking
+    footprints, which this reproduces. Running registration is experimental: it
+    has not been checked for anatomical alignment, and running strike patterns
+    vary (see contacts.strike_index). Rows follow trial and contact order.
+    """
+    from . import contact_geometry
+
+    if not isinstance(subject, str) or not isinstance(condition, str):
+        raise TypeError("Footprints require one participant and one condition")
+    side = _side_code(side)
+    if condition not in ("ws", "wc", "wf", "rc"):
+        raise LookupError(f"No gait contacts for condition {condition}")
+    _require_resource("contacts", "a gait contacts table")
+    with _source.connect(("trials", "contacts", "pressure")) as con:
+        trial_ids = [row[0] for row in con.execute(
+            "SELECT trial_id FROM trials WHERE subject = ? AND condition = ? ORDER BY trial",
+            [subject, condition]).fetchall()]
+        if not trial_ids:
+            raise LookupError(f"No trials for {subject} {condition}")
+        images = []
+        for trial_id in trial_ids:
+            steps = con.sql("SELECT * FROM contacts WHERE trial_id = ? ORDER BY contact",
+                            params=[trial_id]).to_arrow_table()
+            cells = con.sql("SELECT * FROM pressure WHERE trial_id = ? ORDER BY frame, y, x",
+                            params=[trial_id]).to_arrow_table()
+            images += [peak for record, peak in contact_geometry.original_contact_peaks(cells, steps)
+                       if record["side"] == side]
+    if not images:
+        return np.zeros((0, NROWS, NCOLS))
+    template = contact_geometry.register_contact_peak(images[0])
+    return np.stack([template] + [contact_geometry.register_contact_peak(peak, template) for peak in images[1:]])
 
 
 def footprints(subject, condition, side):
     """Registered maps [footprint, y, x] in kPa for one participant, task and foot. Index 0 is the template.
 
     A recorded selection without registered footprints, such as quiet standing or
-    running, returns an empty array. An unknown participant or condition raises
+    running, returns an empty array; registered_footprints() registers running
+    contacts experimentally. An unknown participant or condition raises
     LookupError.
     """
     if not isinstance(subject, str) or not isinstance(condition, str):
@@ -384,15 +485,16 @@ def connect():
 
     The subjects view projects validated participant descriptors from trials. The
     pressure, pressure_features and gait contacts views include trial_id, subject,
-    condition and trial for joins. The standing view contains sparse quiet-standing
-    pressure cells. Releases predating the contacts table omit its view.
+    condition and trial for joins, as do the contact_maps and standing_maps views.
+    The standing view contains sparse quiet-standing pressure cells. Releases
+    predating a feature table omit its view.
     """
     resources = _source.metadata["resources"]
     con = _source.connect(("trials", "footprints") if "footprints" in resources else "trials")
     try:
         _subject_view(con, _source.metadata["subject_columns"])
         _with_trial_keys(con, "pressure")
-        for name in ("pressure_features", "contacts"):
+        for name in ("pressure_features", "contacts", "contact_maps", "standing_maps"):
             if name in resources:
                 _with_trial_keys(con, name)
         con.execute("CREATE VIEW standing AS SELECT * FROM pressure WHERE condition = 'ss'")

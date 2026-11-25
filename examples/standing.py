@@ -21,7 +21,10 @@ def _(mo):
     Each participant contributes the final 10 seconds of one quiet-standing trial.
     The pressure series contains 100 frames sampled at 10 Hz. Select a participant
     to see the mean pressure map and the combined and per-foot centre of pressure.
-    The coordinates refer to sensor centres in the platform plane.
+    The coordinates refer to sensor centres in the platform plane. The file
+    `features_standing_maps.parquet` stores each sensor's peak pressure and
+    pressure–time integral over the trial; `ds.standing_image(subject, kind="mean")`
+    returns the integral divided by the 10 s duration.
     """)
     return
 
@@ -64,7 +67,7 @@ def _(hz, pressure, pressure_player, subject):
 @app.cell
 def _(ds, hz, np, plt, pressure, subject):
     features = ds.pressure_features(subject.value, "ss", 1)
-    _mean = pressure.mean(axis=0)
+    _mean = ds.standing_image(subject.value, kind="mean")
     _rows, _cols = np.nonzero(_mean)
     _x0, _x1 = max(0, _cols.min() - 2), min(_mean.shape[1], _cols.max() + 3)
     _y0, _y1 = max(0, _rows.min() - 2), min(_mean.shape[0], _rows.max() + 3)

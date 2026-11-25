@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 from reader_data import Release
 
-from ppds import dataset
+from ppds import dataset, maps
 
 
 def test_subjects_has_every_subject(source):
@@ -178,6 +178,47 @@ def test_contact_image_reproduces_sensor_and_registered_peaks(source):
             dataset.contact_image(*key, bad)
 
 
+@pytest.mark.parametrize("key", [("s001", "wc", 1), ("s081", "rc", 4), ("s030", "ws", 2)])
+def test_contact_maps_reproduce_each_contact_from_its_foot(source, key):
+    hz = dataset.trials(*key[:2]).query(f"trial == {key[2]}").frequency_hz.item()
+    for step in dataset.contacts(*key).itertuples(index=False):
+        frames = dataset.pressure(*key, side=step.side)[step.start_frame:step.stop_frame]
+        np.testing.assert_array_equal(dataset.contact_image(*key, step.contact), maps.peak_pressure_map(frames), strict=True)
+        np.testing.assert_allclose(dataset.contact_image(*key, step.contact, kind="pti"),
+                                   maps.pressure_time_integral_map(frames, hz), rtol=0, atol=1e-9)
+        np.testing.assert_allclose(dataset.contact_image(*key, step.contact, kind="mean"),
+                                   maps.mean_pressure_map(frames), rtol=0, atol=1e-9)
+        assert step.strike_index == pytest.approx(maps.strike_index(frames), abs=1e-12)
+    with pytest.raises(ValueError, match="kind"):
+        dataset.contact_image(*key, 1, kind="max")
+    with pytest.raises((ValueError, LookupError), match="peak pressures|walking"):
+        dataset.contact_image(*key, 1, registered=True, kind="pti")
+
+
+def test_standing_image_reproduces_the_quiet_standing_trial(source):
+    frames = dataset.standing("s030")
+    np.testing.assert_array_equal(dataset.standing_image("s030"), maps.peak_pressure_map(frames), strict=True)
+    pti = dataset.standing_image("s030", kind="pti")
+    np.testing.assert_allclose(pti, maps.pressure_time_integral_map(frames, 10), rtol=0, atol=1e-9)
+    np.testing.assert_allclose(dataset.standing_image("s030", kind="mean"), pti / 10)
+    left, right = (dataset.standing_image("s030", kind="pti", side=s) for s in "lR")
+    np.testing.assert_allclose(left + right, pti)
+    assert np.count_nonzero(left) and np.count_nonzero(right) and not np.count_nonzero(left * right)
+    with pytest.raises(LookupError, match="s999"):
+        dataset.standing_image("s999")
+
+
+def test_registered_footprints_reproduce_walking_and_extend_to_running(source):
+    np.testing.assert_array_equal(dataset.registered_footprints("s001", "wc", "L"), dataset.footprints("s001", "wc", "L"))
+    running = dataset.registered_footprints("s081", "rc", "r")
+    assert running.shape == (len(dataset.contacts("s081", "rc").query("side == 'R'")), 353, 64)
+    assert np.isfinite(running).all() and all(np.count_nonzero(image) for image in running)
+    for args, error in [(("s001", "ss", "L"), LookupError), (("s999", "wc", "L"), LookupError),
+                        ((["s001"], "wc", "L"), TypeError)]:
+        with pytest.raises(error):
+            dataset.registered_footprints(*args)
+
+
 @pytest.mark.parametrize("lookup, args, kwargs", [
     (dataset.pressure, (["s001"], "wc", 1), {}),
     (dataset.peak_image, ("s001", 1, 1), {}),
@@ -315,7 +356,7 @@ def test_installed_local_default_follows_working_directory(tmp_path):
     code = """
 import os
 from pathlib import Path
-from ppds import dataset
+from ppds import dataset, maps
 
 assert Path(dataset.location("metadata.json")) == Path.cwd() / "data" / "metadata.json"
 os.environ.pop("PPDS_DATA")
@@ -337,7 +378,8 @@ def test_remote_reads_transfer_only_the_parts_needed(http_root, data_root):
             (lambda: dataset.pressure("s045", "wc", 3), "pressure.parquet"),
             (lambda: dataset.pressure("s045", "wc", 3, side="R"), "pressure.parquet"),
             (lambda: dataset.pressure_features("s045", "wc", 3), "features/pressure_features.parquet"),
-            (lambda: dataset.contact_image("s045", "wc", 3, 1), "pressure.parquet"),
+            (lambda: dataset.contact_image("s045", "wc", 3, 1), "features/contact_maps.parquet"),
+            (lambda: dataset.contact_image("s045", "wc", 3, 1, kind="pti"), "features/contact_maps.parquet"),
             (lambda: dataset.contact_image("s045", "wc", 3, 1, registered=True), "features/footprints.parquet"),
             (lambda: dataset.scan("s053", "R"), "scans.zip"),
         ):
@@ -479,10 +521,10 @@ def test_notebook_source_prefers_explicit_record_then_local_release(tmp_path, mo
     monkeypatch.delenv("PPDS_DATA")
     monkeypatch.setattr(dataset, "local_data_dir", lambda: tmp_path)
     dataset.use_notebook()
-    assert dataset.location("trials.parquet").endswith("24432612/files/trials.parquet/content")
+    assert dataset.location("trials.parquet").endswith("24544192/files/trials.parquet/content")
     monkeypatch.setenv("PPDS_DATA", " \t ")
     dataset.use_notebook()
-    assert dataset.location("trials.parquet").endswith("24432612/files/trials.parquet/content")
+    assert dataset.location("trials.parquet").endswith("24544192/files/trials.parquet/content")
     (tmp_path / "metadata.json").write_text("{}")
     dataset.use_notebook()
     assert dataset.location("trials.parquet") == str(tmp_path / "trials.parquet")

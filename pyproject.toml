@@ -1,6 +1,6 @@
 [project]
 name = "ppds"
-version = "0.1.1"
+version = "0.2.0"
 description = "PPDS: plantar pressure recordings, pressure-derived features and 3D foot scans (code and notebooks)"
 readme = "README.md"
 license = "MIT"
@@ -24,7 +24,7 @@ dependencies = [
     "plotly>=6",
     "pyarrow>=26.0.1; sys_platform != 'emscripten'",
     "pyarrow>=22.0.0; sys_platform == 'emscripten'",
-    "reader-data>=0.1.1,<0.2",
+    "reader-data>=0.2.0,<0.3",
     "scipy>=1.18.1; sys_platform != 'emscripten'",
     "scipy>=1.17.1; sys_platform == 'emscripten'",
 ]
@@ -33,7 +33,7 @@ dependencies = [
 Repository = "https://github.com/BMClab/ppds"
 Documentation = "https://bmclab.github.io/ppds/"
 Software = "https://doi.org/10.5281/zenodo.24490656"
-Dataset = "https://doi.org/10.5281/zenodo.24432612"
+Dataset = "https://doi.org/10.5281/zenodo.24544192"
 
 [tool.uv.sources]
 reader-data = { workspace = true }

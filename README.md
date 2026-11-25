@@ -2,7 +2,7 @@
 
 PPDS contains barefoot standing, walking and running plantar pressure recordings and 3D scans of both feet and lower legs from 95 adults. The BMClab at the Federal University of ABC collected the data with a Zebris FDM-1.5 platform and a Kinect sensor.
 
-**[Read the example notebooks](https://bmclab.github.io/ppds/examples/)** · **[Files, units and coordinates](data/README.md)** · **[Dataset on Zenodo](https://doi.org/10.5281/zenodo.24432612)** · **[How to cite](#how-to-cite)** · **[Source on GitHub](https://github.com/BMClab/ppds)**
+**[Read the example notebooks](https://bmclab.github.io/ppds/examples/)** · **[Files, units and coordinates](data/README.md)** · **[Dataset on Zenodo](https://doi.org/10.5281/zenodo.24544192)** · **[How to cite](#how-to-cite)** · **[Source on GitHub](https://github.com/BMClab/ppds)**
 
 ## Explore the dataset
 
@@ -20,12 +20,12 @@ Use the same release in Python to read a comfortable-walking trial, its pressure
 ```python
 from ppds import dataset as ds
 
-ds.use_zenodo(24432612)
+ds.use_zenodo(24544192)
 frames = ds.pressure_features("s031", "wc", 1)
 peak = ds.peak_image("s031", "wc", 1)
 ```
 
-For offline analysis, download the seven files from Zenodo (470 MB total) and keep `scans.zip` intact. Set `PPDS_DATA` to the directory containing `metadata.json` or call `ds.use_local(directory)`. With pip, install both packages from the checkout using `python -m pip install ./framework .`. PPDS is not published on PyPI, and `pip install ppds` installs an unrelated project. [Python API](src/ppds/README.md)
+For offline analysis, download the nine files from Zenodo (480 MB total) and keep `scans.zip` intact. Set `PPDS_DATA` to the directory containing `metadata.json` or call `ds.use_local(directory)`. With pip, install both packages from the checkout using `python -m pip install ./framework .`. PPDS is not published on PyPI, and `pip install ppds` installs an unrelated project. [Python API](src/ppds/README.md)
 
 ## Coverage
 
@@ -37,6 +37,7 @@ Counts show participants, with trials, contacts or footprints in parentheses.
 | Gait contacts (left / right) | – | 95 (2,576 / 2,548) | 95 (2,193 / 2,193) | 95 (1,923 / 1,881) | 37 (649 / 662) |
 | Registered peak-pressure footprints (left / right) | – | 95 (2,576 / 2,548) | 95 (2,193 / 2,193) | 95 (1,923 / 1,881) | – |
 | Frame-level pressure features (trials) | 95 (95) | 95 (950) | 95 (948) | 95 (949) | 37 (370) |
+| Peak-pressure and pressure–time integral maps (trials or contacts) | 95 (95) | 95 (5,124) | 95 (4,386) | 95 (3,804) | 37 (1,311) |
 
 Gait pressure is sampled at 100 Hz. Each standing recording contributes the final 10 seconds at 10 Hz. Pressure arrays use `(frame, y, x)`, with 353 × 64 sensors per frame. Each participant also has a left and a right foot and lower-leg mesh.
 
@@ -46,7 +47,7 @@ The dataset is distributed under CC0 1.0 and the toolkit under the [MIT license]
 
 Cite the dataset when you use the recordings or derived data. If you also use the Python toolkit or example notebooks, cite the software release alongside it.
 
-- **Dataset** — Fukuchi, R., Fukuchi, C., & Duarte, M. (2026). *PPDS: plantar pressure data set* (v1.0.0). Zenodo. [10.5281/zenodo.24432612](https://doi.org/10.5281/zenodo.24432612)
-- **Software** — Duarte, M., & Fukuchi, R. K. (2026). *Python toolkit and example notebooks for the plantar pressure data set (PPDS)* (v0.1.1). Zenodo. [10.5281/zenodo.24490656](https://doi.org/10.5281/zenodo.24490656)
+- **Dataset** — Fukuchi, R., Fukuchi, C., & Duarte, M. (2026). *PPDS: plantar pressure data set* (v1.1.0). Zenodo. [10.5281/zenodo.24544192](https://doi.org/10.5281/zenodo.24544192)
+- **Software** — Duarte, M., & Fukuchi, R. K. (2026). *Python toolkit and example notebooks for the plantar pressure data set (PPDS)* (v0.2.0). Zenodo. [10.5281/zenodo.24490656](https://doi.org/10.5281/zenodo.24490656)
 
 The software DOI resolves to the latest release. The Zenodo page lists the DOI of each version.

@@ -27,6 +27,16 @@ TABLES = {
         ["trial_id", "contact"],
         "Walking and running contacts on the original pressure grid",
     ),
+    "contact_maps": (
+        "features/contact_maps.parquet",
+        ["trial_id", "contact", "y", "x"],
+        "Peak pressure and pressure-time integral at each sensor during each gait contact",
+    ),
+    "standing_maps": (
+        "features/standing_maps.parquet",
+        ["trial_id", "y", "x"],
+        "Peak pressure and pressure-time integral at each sensor during quiet standing",
+    ),
     "footprints": (
         "features/footprints.parquet",
         ["subject", "condition", "side", "footprint", "y", "x"],
@@ -35,7 +45,8 @@ TABLES = {
 }
 
 # Validate downloaded schemas against the dictionary distributed with the toolkit.
-REFERENCE = json.loads(files("ppds").joinpath("release_1_0_0.json").read_text(encoding="utf-8"))
+VERSION = "1.1.0"
+REFERENCE = json.loads(files("ppds").joinpath("release_1_1_0.json").read_text(encoding="utf-8"))
 SUBJECT_COLUMNS = tuple(REFERENCE["subject_columns"])
 TABLE_SCHEMAS = {
     name: pa.schema([
