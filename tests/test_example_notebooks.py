@@ -104,10 +104,16 @@ def test_pressure_notebook_selects_available_gait(data_root, monkeypatch, only_s
     from examples.pressure import app
 
     # Model a smaller release by limiting the trial inventory used by every reader and SQL join.
+    # Choose the kept trials from the data so reduced releases such as the browser sample work.
     table = Release.table
-    selected = "subject = 's001' AND condition = 'ss'"
+    with duckdb.connect() as con:
+        trials = table(Release.local(data_root), "trials", connection=con)
+        [(stance,)] = trials.filter("condition = 'ss'").order("subject").project("subject").limit(1).fetchall()
+        gait = trials.filter("condition = 'wf'").order("subject DESC, trial DESC")
+        [(gait_subject, gait_trial)] = gait.project("subject, trial").limit(1).fetchall()
+    selected = f"subject = '{stance}' AND condition = 'ss'"
     if not only_stance:
-        selected += " OR (subject = 's002' AND condition = 'wf' AND trial = 2)"
+        selected += f" OR (subject = '{gait_subject}' AND condition = 'wf' AND trial = {gait_trial})"
 
     def subset(release, name, *, connection=None):
         rows = table(release, name, connection=connection)
@@ -120,9 +126,9 @@ def test_pressure_notebook_selects_available_gait(data_root, monkeypatch, only_s
             assert "p" not in defs
             assert any("no walking or running" in getattr(o, "text", "").lower() for o in outputs)
         else:
-            assert list(defs["subject"].options) == ["s002"]
+            assert list(defs["subject"].options) == [gait_subject]
             assert defs["condition"].value == "wf"
-            assert defs["trial"].value == "2"
+            assert defs["trial"].value == str(gait_trial)
             assert defs["p"].size > 0
             frame_plot = next(
                 o for o in outputs if hasattr(o, "axes") and o.axes[0].get_xlabel() == "y (sensor)"
