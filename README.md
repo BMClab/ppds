@@ -47,6 +47,6 @@ The dataset is distributed under CC0 1.0 and the toolkit under the [MIT license]
 Cite the dataset when you use the recordings or derived data. If you also use the Python toolkit or example notebooks, cite the software release alongside it.
 
 - **Dataset** — Fukuchi, R., Fukuchi, C., & Duarte, M. (2026). *PPDS: plantar pressure data set* (v1.0.0). Zenodo. [10.5281/zenodo.24432612](https://doi.org/10.5281/zenodo.24432612)
-- **Software** — Duarte, M., & Fukuchi, R. K. (2026). *Python toolkit and example notebooks for the plantar pressure data set (PPDS)* (v0.1.0). Zenodo. [10.5281/zenodo.24490656](https://doi.org/10.5281/zenodo.24490656)
+- **Software** — Duarte, M., & Fukuchi, R. K. (2026). *Python toolkit and example notebooks for the plantar pressure data set (PPDS)* (v0.1.1). Zenodo. [10.5281/zenodo.24490656](https://doi.org/10.5281/zenodo.24490656)
 
 The software DOI resolves to the latest release. The Zenodo page lists the DOI of each version.
