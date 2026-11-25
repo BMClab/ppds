@@ -120,7 +120,8 @@ def test_unknown_size_browser_file_reuses_download(contents, monkeypatch):
     assert reads == [url]
 
 
-@pytest.mark.parametrize("response", ["full", "partial", "short-full", "short-partial", "missing"])
+@pytest.mark.parametrize("response", ["full", "partial", "hidden-range", "short-full", "short-partial",
+                                      "wrong-range", "missing"])
 def test_browser_range_http_responses(response, monkeypatch):
     import sys
     from types import SimpleNamespace
@@ -142,10 +143,18 @@ def test_browser_range_http_responses(response, monkeypatch):
 
         def send(self):
             requests.append(self.part)
-            self.status = {"full": 200, "partial": 206, "short-full": 200,
-                           "short-partial": 206, "missing": 404}[response]
+            self.status = {"full": 200, "partial": 206, "hidden-range": 206, "short-full": 200,
+                           "short-partial": 206, "wrong-range": 206, "missing": 404}[response]
             data = contents[self.part] if self.status == 206 else contents
             self.response = memoryview(data[:-1] if response.startswith("short") else data)
+
+        def getResponseHeader(self, name):
+            assert name == "Content-Range"
+            if response == "hidden-range":
+                return None
+            # A misbehaving cache returns the right length from the wrong offset.
+            start = self.part.start + (8 if response == "wrong-range" else 0)
+            return f"bytes {start}-{start + self.part.stop - self.part.start - 1}/{len(contents)}"
 
     js = SimpleNamespace(XMLHttpRequest=SimpleNamespace(new=Request),
                          Uint8Array=SimpleNamespace(new=lambda data: SimpleNamespace(to_py=lambda: data)))
@@ -154,7 +163,7 @@ def test_browser_range_http_responses(response, monkeypatch):
         assert stream._fetch_range(13, 13) == stream._fetch_range(13, 11) == b""
         assert not requests
         stream.seek(10)
-        if response in ("full", "partial"):
+        if response in ("full", "partial", "hidden-range"):
             assert stream.read(12) == contents[10:22]
             stream.seek(3)
             assert stream.read(4) == contents[3:7]
@@ -162,3 +171,26 @@ def test_browser_range_http_responses(response, monkeypatch):
         else:
             with pytest.raises(OSError):
                 stream.read(4)
+
+
+def test_full_responses_are_shared_by_later_readers(monkeypatch):
+    from reader_data import _browser
+
+    contents = bytes(range(40))
+    requests = []
+
+    def ignore_range(url, start=None, stop=None):
+        requests.append(url)
+        return 200, contents
+
+    monkeypatch.setattr(_browser, "BLOCK_SIZE", 8)
+    monkeypatch.setattr(_browser, "_request", ignore_range)
+    monkeypatch.setattr(_browser, "_full_files", {})
+    for _ in range(3):
+        with _browser.open_http("https://example.org/no-range", len(contents)) as stream:
+            stream.seek(30)
+            assert stream.read(5) == contents[30:35]
+    with _browser.open_http("https://example.org/other", len(contents)) as stream:
+        assert stream.read(3) == contents[:3]
+    assert requests == ["https://example.org/no-range", "https://example.org/other"]
+    assert list(_browser._full_files) == [("https://example.org/other", len(contents))]

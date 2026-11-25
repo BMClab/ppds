@@ -12,6 +12,9 @@ from fsspec.spec import AbstractBufferedFile
 BLOCK_SIZE = 512 * 1024
 # At most 24 MiB shared across short-lived DuckDB connections in this worker.
 _blocks = OrderedDict()
+# A mirror that ignores Range returns whole files. Keep the latest one for every
+# reader of the same resource, so new DuckDB handles do not download it again.
+_full_files = {}
 
 
 def _request(url, start=None, stop=None):
@@ -28,8 +31,13 @@ def _request(url, start=None, stop=None):
     if request.status != 200 and not (start is not None and request.status == 206):
         raise OSError(f"HTTP {request.status} reading {url}")
     data = Uint8Array.new(request.response).to_py().tobytes()
-    if request.status == 206 and len(data) != stop - start:
-        raise OSError(f"Incomplete byte range from {url}")
+    if request.status == 206:
+        if len(data) != stop - start:
+            raise OSError(f"Incomplete byte range from {url}")
+        # Browsers hide Content-Range unless CORS exposes it; check it when visible.
+        served = request.getResponseHeader("Content-Range")
+        if served is not None and not str(served).startswith(f"bytes {start}-{stop - 1}/"):
+            raise OSError(f"Unexpected byte range {served} from {url}")
     return request.status, data
 
 
@@ -38,14 +46,13 @@ def _fetch(url):
 
 
 class RangeFile(AbstractBufferedFile):
-    _full_file = None
-
     def _fetch_range(self, start, end):
         end = min(end, self.size)
         if start >= end:
             return b""
-        if self._full_file is not None:
-            return self._full_file[start:end]
+        whole = _full_files.get((self.path, self.size))
+        if whole is not None:
+            return whole[start:end]
         first = start // BLOCK_SIZE * BLOCK_SIZE
         blocks = []
         for offset in range(first, end, BLOCK_SIZE):
@@ -55,21 +62,17 @@ class RangeFile(AbstractBufferedFile):
             else:
                 status, data = _request(self.path, offset, min(offset + BLOCK_SIZE, self.size))
                 if status == 200:
-                    # Some mirrors ignore Range. Retain large responses only on this reader.
                     if len(data) != self.size:
                         raise OSError(f"Unexpected full response size from {self.path}")
                     if self.size > BLOCK_SIZE:
-                        self._full_file = data
+                        _full_files.clear()
+                        _full_files[self.path, self.size] = data
                         return data[start:end]
                 _blocks[key] = data
                 if len(_blocks) > 48:
                     _blocks.popitem(last=False)
             blocks.append(_blocks[key])
         return b"".join(blocks)[start - first:end - first]
-
-    def close(self):
-        self._full_file = None
-        super().close()
 
 
 def open_http(url, size):
