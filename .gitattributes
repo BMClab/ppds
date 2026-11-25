@@ -1,2 +1,10 @@
+# Check out text with LF on every platform, so a wheel built from a Windows
+# clone matches the stored notebook wheels byte for byte. Later lines override this.
+* text=auto eol=lf
+
+# Store the notebook assets exactly as built.
+*.whl binary
+*.zip binary
+
 # Preserve the synthetic instrument export, including its final blank record.
 src/ppds/samples/demowc.txt -text whitespace=-blank-at-eof
