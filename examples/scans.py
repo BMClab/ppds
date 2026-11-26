@@ -2,8 +2,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo>=0.25.2",
-#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/970500e132005f36e8fcb866a51745f026f612f7/notebook-assets/reader_data-0.2.0-py3-none-any.whl",
-#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/970500e132005f36e8fcb866a51745f026f612f7/notebook-assets/ppds-0.2.0-py3-none-any.whl",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/5188514abd44cdda18863454b96541f932c0ab13/notebook-assets/reader_data-0.2.1-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/5188514abd44cdda18863454b96541f932c0ab13/notebook-assets/ppds-0.2.1-py3-none-any.whl",
 # ]
 # ///
 

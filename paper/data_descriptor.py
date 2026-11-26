@@ -2,8 +2,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo==0.25.2",
-#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/970500e132005f36e8fcb866a51745f026f612f7/notebook-assets/reader_data-0.2.0-py3-none-any.whl",
-#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/970500e132005f36e8fcb866a51745f026f612f7/notebook-assets/ppds-0.2.0-py3-none-any.whl",
+#     "reader-data @ https://raw.githubusercontent.com/BMClab/ppds/5188514abd44cdda18863454b96541f932c0ab13/notebook-assets/reader_data-0.2.1-py3-none-any.whl",
+#     "ppds @ https://raw.githubusercontent.com/BMClab/ppds/5188514abd44cdda18863454b96541f932c0ab13/notebook-assets/ppds-0.2.1-py3-none-any.whl",
 #     "matplotlib==3.11.2",
 #     "numpy==2.5.4",
 #     "pandas==3.1.0",
@@ -136,7 +136,7 @@ def _(
     `uv run --locked marimo export html paper/data_descriptor.py -o paper/data_descriptor.html`.
 
     [Versioned dataset](https://doi.org/10.5281/zenodo.24544934) ·
-    [Archived toolkit and examples](https://doi.org/10.5281/zenodo.24546303)
+    [Software release v0.2.1](https://github.com/BMClab/ppds/releases/tag/v0.2.1)
 
     ## A notebook-first approach to reproducible research
 
@@ -1656,10 +1656,11 @@ def _(mo):
     **Study administration and release.** Ethics approval CAAE 53063315.7.0000.5594,
     opinion 1.417.054, 21 February 2016. The study team records written consent for
     public sharing of coded measurements and meshes. FAPESP grant 2015/14810-0 supported
-    the study. Dataset 1.1.1 is available under CC0 1.0. The archived MIT-licensed
-    toolkit 0.2.0 requires Python ≥3.12 and contains 11 example notebooks.
+    the study. Dataset 1.1.1 is available under CC0 1.0. The MIT-licensed
+    toolkit 0.2.1 requires Python ≥3.12. The software release includes this manuscript
+    notebook, 11 standalone example notebooks and a participant dashboard.
     [Dataset record](https://doi.org/10.5281/zenodo.24544934) ·
-    [Software record](https://doi.org/10.5281/zenodo.24546303)
+    [Software record](https://github.com/BMClab/ppds/releases/tag/v0.2.1)
 
     **Other cohorts.** The following numbers are attributed to their study publications.
     They provide context for comparisons across barefoot tasks, sensor geometry and
