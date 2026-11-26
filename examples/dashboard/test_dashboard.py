@@ -19,8 +19,12 @@ def test_browser_html_contains_current_dashboard():
     saved = re.search(r"<marimo-code\b[^>]*>(.*?)</marimo-code>", page, re.DOTALL)
     assert saved is not None
     # Marimo normalizes the script metadata. Compare the notebook and its bundled helpers.
-    code = unquote(saved[1]).split("# ///\n", 1)[1]
+    header, code = unquote(saved[1]).split("# ///\n", 1)
     assert code == browser_notebook().split("# ///\n", 1)[1], "Rebuild dashboard.html with export_html.py"
+    # The browser installs the wheels named in the saved header, so a re-pin must reach the page too.
+    wheels = re.compile(r"https://\S+?\.whl")
+    source = (DASHBOARD / "dashboard.py").read_text(encoding="utf-8").split("# ///\n", 1)[0]
+    assert wheels.findall(header) == wheels.findall(source), "Rebuild dashboard.html with export_html.py"
 
 
 @pytest.fixture

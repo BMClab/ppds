@@ -1,4 +1,4 @@
-"""Prepare selected PPDS measurements for the local Figure 1 dashboard."""
+"""Prepare the selected trials' PPDS measurements for the dashboard."""
 
 import os
 from pathlib import Path
