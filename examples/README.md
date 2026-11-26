@@ -33,7 +33,7 @@ uv run --locked marimo run examples/dashboard/dashboard.py
 | [pressure.py](pressure.py) | Frame-by-frame gait pressure, vertical force, contact area, centre of pressure, and peak pressure across all gait trials (SQL) |
 | [standing.py](standing.py) | Mean quiet-standing pressure map, bilateral force, and combined and per-foot COP trajectories |
 | [footprints.py](footprints.py) | Registered footprints of one participant, mean and SD images, image area and peak pressure by walking speed, peak, pressure–time integral and mean contact maps, strike index by task, and experimental running registration |
-| [ground_reaction_forces.py](ground_reaction_forces.py) | Combined and per-foot vertical force in each walking trial, in newtons or body weights |
+| [ground_reaction_forces.py](ground_reaction_forces.py) | Combined and per-foot vertical force in each walking trial, in newtons or body weights, and butterfly diagrams of the combined centre of pressure at each speed |
 | [queries.py](queries.py) | Cohort and trial queries, including contact times and impulses by task and side |
 | [example_segmentation_registration.py](example_segmentation_registration.py) | Step-by-step tutorial of the segmentation and registration methods |
 | [pressure_conversion.py](pressure_conversion.py) | Convert Zebris pressure ASCII and trial NPZ files to Parquet, then recover the original notebook layout. Runs with a bundled synthetic recording. |
