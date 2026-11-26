@@ -1114,34 +1114,28 @@ def _(force_by_activity, mpl, np, plot_style, plt, render_png):
         "Running": ("#008568", "s"),
     }
     with mpl.rc_context(plot_style):
-        _fig, _axes = plt.subplots(2, 2, figsize=(7.3, 6.3))
-        _fig.subplots_adjust(
-            left=0.102, right=0.977, bottom=0.145, top=0.948, wspace=0.35, hspace=0.54
-        )
+        _fig, _axes = plt.subplots(2, 1, figsize=(3.9, 6.6), sharex=True)
+        _fig.subplots_adjust(left=0.19, right=0.97, bottom=0.075, top=0.98, hspace=0.08)
         _weight = force_by_activity.body_weight_N
         _lo = 100 * np.floor(
             min(_weight.min(), force_by_activity.mean_force_N.min()) / 100
         )
         _hi = 100 * np.ceil(_weight.max() / 100)
         _groups = force_by_activity.groupby("activity")
-        for (_scatter, _hist), (_stat, _force_col, _ratio_col, _width, _letters) in zip(
+        for _scatter, (_stat, _force_col, _letter) in zip(
             _axes,
-            [
-                ("Mean", "mean_force_N", "ratio", 0.05, "ab"),
-                ("Peak", "peak_force_N", "peak_ratio", 0.10, "cd"),
-            ],
+            [("Mean", "mean_force_N", "a"), ("Peak", "peak_force_N", "b")],
             strict=True,
         ):
             _scatter.plot(
                 [_lo, _hi], [_lo, _hi], ls="--", lw=0.9, color="#555555", zorder=0
             )
-            _ratios = []
             for _activity, (_color, _marker) in _styles.items():
                 _group = _groups.get_group(_activity)
                 _scatter.scatter(
                     _group.body_weight_N,
                     _group[_force_col],
-                    s=18,
+                    s=(np.sqrt(18) + 1) ** 2,  # area in pt²: 1 pt wider than the former s=18
                     marker=_marker,
                     facecolor=_color,
                     alpha=0.78,
@@ -1149,45 +1143,28 @@ def _(force_by_activity, mpl, np, plot_style, plt, render_png):
                     linewidth=0.3,
                     label=f"{_activity} (n = {len(_group)})",
                 )
-                _ratios.append(_group[_ratio_col])
             _yhi = 100 * np.ceil(force_by_activity[_force_col].max() / 100)
             _scatter.set(
                 xlim=(_lo, _hi),
                 ylim=(_lo, max(_hi, _yhi)),
-                xlabel="Body weight from scale (N)",
-                ylabel=f"{_stat} force from pressure (N)",
             )
+            _scatter.set_ylabel(f"{_stat} force from pressure (N)", fontsize=10)
             _scatter.set_box_aspect(1)
-            _scatter.set_title(
-                f"{_letters[0]}   {_stat} force and body weight",
-                loc="left",
+            # Panel letter outside the top-left corner of the axes, level with its top.
+            _scatter.text(
+                -0.25,
+                1.0,
+                _letter,
+                transform=_scatter.transAxes,
+                ha="left",
+                va="top",
+                fontsize=11,
                 weight="bold",
             )
-            _ratio = force_by_activity[_ratio_col]
-            _bins = _width * np.arange(
-                np.floor(_ratio.min() / _width), np.ceil(_ratio.max() / _width) + 1
-            )
-            _hist.hist(
-                _ratios, bins=_bins, color=[s[0] for s in _styles.values()], rwidth=0.90
-            )
-            _hist.axvline(1, color="#555555", ls="--", lw=0.9)
-            _hist.set(xlabel=f"{_stat} force / body weight", ylabel="Participants")
-            _hist.set_title(
-                f"{_letters[1]}   Distribution of {_stat.lower()} ratios",
-                loc="left",
-                weight="bold",
-            )
-        _handles, _labels = _axes[0, 0].get_legend_handles_labels()
-        _fig.legend(
-            _handles,
-            _labels,
-            loc="lower center",
-            bbox_to_anchor=(0.53, 0.02),
-            ncols=3,
-            frameon=False,
-            fontsize=8,
-            handletextpad=0.25,
-            columnspacing=1.8,
+        # Shared x-axis: only the bottom plot carries tick labels and the axis label.
+        _axes[1].set_xlabel("Body weight from scale (N)", fontsize=10)
+        _axes[0].legend(
+            loc="upper left", frameon=False, fontsize=8, handletextpad=0.25
         )
         figure2_png = render_png(_fig, 0.06)
     return (figure2_png,)
@@ -1203,13 +1180,12 @@ def _(figure2_png, force_by_activity, mo, show_figure, standard_gravity):
                 "Figure 2",
                 f"""## Figure 2. Mean and peak vertical force compared with body weight
 
-                Each participant contributes one point per recorded activity to each scatter plot.
+                Each participant contributes one point per recorded activity to each plot, against
+                scale-derived body weight (measured mass × {standard_gravity} m/s²).
                 (a) Mean combined vertical force from both feet over all recorded frames, including
-                flight and other unloaded frames. (b) Distribution of the mean force divided by
-                scale-derived body weight (measured mass × {standard_gravity} m/s²), in bins of 0.05.
-                (c) Peak combined force is the highest single-frame total from both feet across the
-                participant’s recorded trials for that activity. (d) Distribution of peak force
-                divided by body weight, in bins of 0.10. Dashed lines mark equality.
+                flight and other unloaded frames. (b) Peak combined force is the highest single-frame
+                total from both feet across the participant’s recorded trials for that activity.
+                Dashed lines mark equality.
 
                 Walking pools slow, comfortable and fast trials. Running includes comfortable-running
                 trials. In the order quiet standing, walking and running, the median mean-force
