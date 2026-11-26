@@ -22,12 +22,12 @@ import reader_data
 
 from .paths import local_data_dir
 
-NROWS, NCOLS = 353, 64
+NROWS, NCOLS = 353, 64  # two 176-row plates joined by Zebris through an interpolated row 176
 FREQ_HZ = 100.0
 CELL_CM = 0.8469
 TABLES = ("subjects", "trials", "standing", "footprints", "contacts",
           "pressure", "pressure_features", "contact_maps", "standing_maps")
-RECORD = 24544192  # PPDS 1.1.0 on Zenodo
+RECORD = 24544934  # PPDS 1.1.1 on Zenodo
 MAP_KINDS = ("peak", "pti", "mean")
 
 _source = reader_data.Release.local(local_data_dir())
@@ -399,9 +399,11 @@ def standing_image(subject, *, kind="peak", side=None):
 def registered_footprints(subject, condition, side):
     """Register every contact of one participant, gait condition and foot; return [footprint, y, x] in kPa.
 
-    Footprint 0 is the pressure-centered first contact of the condition and
-    side, and later contacts are aligned to it as in the released walking
-    footprints, which this reproduces. Running registration is experimental: it
+    Each contact's original-grid peak map comes from the contact maps (or the
+    sensor readings in releases without them). Footprint 0 is the
+    pressure-centered first contact of the condition and side, and later
+    contacts are aligned to it about the grid center. This reproduces the
+    released walking footprints. Running registration is experimental: it
     has not been checked for anatomical alignment, and running strike patterns
     vary (see contacts.strike_index). Rows follow trial and contact order.
     """
@@ -413,20 +415,39 @@ def registered_footprints(subject, condition, side):
     if condition not in ("ws", "wc", "wf", "rc"):
         raise LookupError(f"No gait contacts for condition {condition}")
     _require_resource("contacts", "a gait contacts table")
-    with _source.connect(("trials", "contacts", "pressure")) as con:
-        trial_ids = [row[0] for row in con.execute(
-            "SELECT trial_id FROM trials WHERE subject = ? AND condition = ? ORDER BY trial",
-            [subject, condition]).fetchall()]
-        if not trial_ids:
-            raise LookupError(f"No trials for {subject} {condition}")
-        images = []
-        for trial_id in trial_ids:
-            steps = con.sql("SELECT * FROM contacts WHERE trial_id = ? ORDER BY contact",
-                            params=[trial_id]).to_arrow_table()
-            cells = con.sql("SELECT * FROM pressure WHERE trial_id = ? ORDER BY frame, y, x",
-                            params=[trial_id]).to_arrow_table()
-            images += [peak for record, peak in contact_geometry.original_contact_peaks(cells, steps)
-                       if record["side"] == side]
+    images = []
+    if "contact_maps" in _source.metadata["resources"]:
+        # The contact maps hold each contact's original-grid peaks, so one query serves every trial.
+        with _source.connect(("trials", "contacts", "contact_maps")) as con:
+            if not con.execute("SELECT 1 FROM trials WHERE subject = ? AND condition = ? LIMIT 1",
+                               [subject, condition]).fetchall():
+                raise LookupError(f"No trials for {subject} {condition}")
+            cells = con.execute("""
+                SELECT t.trial, c.contact, m.y, m.x, m.peak_pressure
+                FROM trials t JOIN contacts c USING (trial_id) JOIN contact_maps m USING (trial_id, contact)
+                WHERE t.subject = ? AND t.condition = ? AND c.side = ?
+                ORDER BY t.trial, c.contact
+            """, [subject, condition, side]).fetchnumpy()
+        keys = cells["trial"].astype(np.int64) * 256 + cells["contact"]
+        starts = np.flatnonzero(np.r_[True, keys[1:] != keys[:-1]]) if len(keys) else []
+        for begin, end in zip(starts, [*starts[1:], len(keys)]):
+            peak = np.zeros((NROWS, NCOLS))
+            peak[cells["y"][begin:end], cells["x"][begin:end]] = cells["peak_pressure"][begin:end]
+            images.append(peak)
+    else:
+        with _source.connect(("trials", "contacts", "pressure")) as con:
+            trial_ids = [row[0] for row in con.execute(
+                "SELECT trial_id FROM trials WHERE subject = ? AND condition = ? ORDER BY trial",
+                [subject, condition]).fetchall()]
+            if not trial_ids:
+                raise LookupError(f"No trials for {subject} {condition}")
+            for trial_id in trial_ids:
+                steps = con.sql("SELECT * FROM contacts WHERE trial_id = ? ORDER BY contact",
+                                params=[trial_id]).to_arrow_table()
+                cells = con.sql("SELECT * FROM pressure WHERE trial_id = ? ORDER BY frame, y, x",
+                                params=[trial_id]).to_arrow_table()
+                images += [peak for record, peak in contact_geometry.original_contact_peaks(cells, steps)
+                           if record["side"] == side]
     if not images:
         return np.zeros((0, NROWS, NCOLS))
     template = contact_geometry.register_contact_peak(images[0])

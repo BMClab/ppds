@@ -1,4 +1,4 @@
-"""Build the browser pressure sample from a PPDS 1.1.0 download with verified Parquet tables."""
+"""Build the browser pressure sample from a PPDS 1.1.1 download with verified Parquet tables."""
 
 import argparse
 import hashlib
@@ -16,9 +16,9 @@ SUBJECTS = ("s001", "s005", "s055", "s058")
 
 def build(data, output):
     source = Release.local(data)
-    pinned = json.loads(files("ppds").joinpath("release_1_1_0.json").read_bytes())
+    pinned = json.loads(files("ppds").joinpath("release_1_1_1.json").read_bytes())
     if source.metadata != pinned:
-        raise ValueError("Expected the PPDS 1.1.0 data dictionary")
+        raise ValueError("Expected the PPDS 1.1.1 data dictionary")
     for name, spec in pinned["resources"].items():
         if spec["format"] == "parquet":
             with open(source.resource_location(name), "rb") as stream:
@@ -26,7 +26,7 @@ def build(data, output):
                     raise ValueError(f"Checksum mismatch for {name}")
     trials = pq.read_table(source.resource_location("trials"), filters=[("subject", "in", SUBJECTS)])
     ids = trials["trial_id"].to_pylist()
-    manifest = {"dataset": "PPDS browser sample", "source_doi": "10.5281/zenodo.24544192",
+    manifest = {"dataset": "PPDS browser sample", "source_doi": "10.5281/zenodo.24544934",
                 "subjects": SUBJECTS, "subject_columns": pinned["subject_columns"], "resources": {}}
     with ZipFile(output, "w") as archive:
         for name, spec in pinned["resources"].items():

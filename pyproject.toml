@@ -33,7 +33,7 @@ dependencies = [
 Repository = "https://github.com/BMClab/ppds"
 Documentation = "https://bmclab.github.io/ppds/"
 Software = "https://doi.org/10.5281/zenodo.24490656"
-Dataset = "https://doi.org/10.5281/zenodo.24544192"
+Dataset = "https://doi.org/10.5281/zenodo.24544934"
 
 [tool.uv.sources]
 reader-data = { workspace = true }

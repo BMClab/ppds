@@ -16,4 +16,4 @@ The examples install the same two pure-Python wheels in GitHub Pages, marimo.app
 
 To test a local Pages build with unpublished assets, run `uv run --no-project --script scripts/check_browser_examples.py _site --checkout-assets notebook-assets`. Pull requests use this mode. The check on `main` fetches the published URLs.
 
-The 8.5 MB `pressure-sample.zip` is a separate asset. Rebuild it only when the four-participant sample changes. For a replacement, commit the ZIP first, update its immutable URL and SHA-256 in `src/ppds/_browser_sample.py`, then rebuild and re-pin the wheels.
+The 9.0 MB `pressure-sample.zip` is a separate asset. Rebuild it only when the four-participant sample changes. For a replacement, commit the ZIP first, update its immutable URL and SHA-256 in `src/ppds/_browser_sample.py`, then rebuild and re-pin the wheels.

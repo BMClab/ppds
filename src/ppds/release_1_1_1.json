@@ -5,10 +5,10 @@
     "site": "Laboratory of Biomechanics and Motor Control, Federal University of ABC, Brazil",
     "participants": 95,
     "tasks": "Quiet stance and barefoot walking at three self-selected speeds. A subset of 37 participants also ran at a comfortable speed.",
-    "plantar_pressure": "Zebris FDM-1.5 pressure platform system.",
+    "plantar_pressure": "Two Zebris FDM-1.5 pressure platforms placed end to end.",
     "surface_scans": "Separate left and right foot and lower-leg scans acquired with Microsoft Kinect and Skanect 1.8.3."
   },
-  "version": "1.1.0",
+  "version": "1.1.1",
   "subject_columns": [
     "subject",
     "Age",
@@ -68,7 +68,9 @@
     "origin": "Center of sensor (y=0, x=0).",
     "orientation": "Gait y increases in the walking direction. Stance retains the platform orientation.",
     "time": "Trial-relative seconds = frame / frequency_hz. Gait 100 Hz; stance final 100 frames at 10 Hz.",
-    "sparsity": "Initialize all n_frames by 353 by 64 cells to zero, then fill the stored readings."
+    "sparsity": "Initialize all n_frames by 353 by 64 cells to zero, then fill the stored readings.",
+    "junction_row": "Rows 0-175 and 177-352 come from two 176-row platforms placed end to end. The Zebris software fills row 176 at their junction with the mean of rows 175 and 177, rounded down to the 5 kPa step; those readings count toward force, contact area and the maps.",
+    "edges": "During curation, gait steps that loaded row 0 or row 352 were removed, and 1.1.1 removes contacts that load column 0 or 63."
   },
   "pressure_features": {
     "force": "Sum of sensor pressures in kPa multiplied by 1000 and sensor area in square metres.",
@@ -104,7 +106,461 @@
     "walking": "Each segmented walking footprint on the original grid defines one contact. The interval spans its first through last loaded frame, including any intervening unloaded samples.",
     "running": "Each uninterrupted run of loaded frames for one anatomical foot defines one running contact.",
     "numbering": "Contacts start at one in order of first load within each trial. The start frame is inclusive and the stop frame is exclusive.",
-    "strike_index": "Cavanagh and Lafortune (1980) strike index along the walking direction. The footprint is the union of the contact's loaded sensors; its posterior and anterior edges are the outer edges of the lowest and highest loaded rows."
+    "strike_index": "After Cavanagh and Lafortune (1980): the center of pressure at onset, the first frame with at least 20 N on the foot, along the walking direction. The first loaded frame reaches 20 N in 43% of contacts. The footprint is the union of the contact's loaded sensors; its posterior and anterior edges are the outer edges of the lowest and highest loaded rows.",
+    "excluded": [
+      {
+        "trial_id": 336,
+        "contact_1_0_0": 6,
+        "subject": "s009",
+        "condition": "wc",
+        "trial": 8,
+        "side": "L",
+        "reason": "toes cut off at the far end of the walkway"
+      },
+      {
+        "trial_id": 345,
+        "contact_1_0_0": 1,
+        "subject": "s009",
+        "condition": "wf",
+        "trial": 7,
+        "side": "R",
+        "reason": "heel cut off at the start of the walkway"
+      },
+      {
+        "trial_id": 350,
+        "contact_1_0_0": 6,
+        "subject": "s009",
+        "condition": "ws",
+        "trial": 2,
+        "side": "L",
+        "reason": "toes cut off at the far end of the walkway"
+      },
+      {
+        "trial_id": 448,
+        "contact_1_0_0": 4,
+        "subject": "s012",
+        "condition": "wc",
+        "trial": 7,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 571,
+        "contact_1_0_0": 5,
+        "subject": "s015",
+        "condition": "wc",
+        "trial": 7,
+        "side": "L",
+        "reason": "toes cut off at the far end of the walkway"
+      },
+      {
+        "trial_id": 644,
+        "contact_1_0_0": 1,
+        "subject": "s017",
+        "condition": "rc",
+        "trial": 9,
+        "side": "R",
+        "reason": "recording started during stance"
+      },
+      {
+        "trial_id": 674,
+        "contact_1_0_0": 1,
+        "subject": "s017",
+        "condition": "ws",
+        "trial": 8,
+        "side": "L",
+        "reason": "recording started during stance"
+      },
+      {
+        "trial_id": 726,
+        "contact_1_0_0": 4,
+        "subject": "s019",
+        "condition": "wf",
+        "trial": 8,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 727,
+        "contact_1_0_0": 4,
+        "subject": "s019",
+        "condition": "wf",
+        "trial": 9,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 798,
+        "contact_1_0_0": 5,
+        "subject": "s021",
+        "condition": "ws",
+        "trial": 8,
+        "side": "L",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 804,
+        "contact_1_0_0": 2,
+        "subject": "s022",
+        "condition": "rc",
+        "trial": 4,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 808,
+        "contact_1_0_0": 4,
+        "subject": "s022",
+        "condition": "rc",
+        "trial": 8,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 810,
+        "contact_1_0_0": 3,
+        "subject": "s022",
+        "condition": "rc",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 820,
+        "contact_1_0_0": 4,
+        "subject": "s022",
+        "condition": "wc",
+        "trial": 9,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 822,
+        "contact_1_0_0": 4,
+        "subject": "s022",
+        "condition": "wf",
+        "trial": 2,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 830,
+        "contact_1_0_0": 4,
+        "subject": "s022",
+        "condition": "wf",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 831,
+        "contact_1_0_0": 1,
+        "subject": "s022",
+        "condition": "ws",
+        "trial": 1,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 831,
+        "contact_1_0_0": 5,
+        "subject": "s022",
+        "condition": "ws",
+        "trial": 1,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 832,
+        "contact_1_0_0": 1,
+        "subject": "s022",
+        "condition": "ws",
+        "trial": 2,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 835,
+        "contact_1_0_0": 3,
+        "subject": "s022",
+        "condition": "ws",
+        "trial": 5,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 844,
+        "contact_1_0_0": 4,
+        "subject": "s023",
+        "condition": "rc",
+        "trial": 4,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 845,
+        "contact_1_0_0": 2,
+        "subject": "s023",
+        "condition": "rc",
+        "trial": 5,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 871,
+        "contact_1_0_0": 1,
+        "subject": "s023",
+        "condition": "wf",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 973,
+        "contact_1_0_0": 4,
+        "subject": "s026",
+        "condition": "wc",
+        "trial": 9,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 980,
+        "contact_1_0_0": 4,
+        "subject": "s026",
+        "condition": "wf",
+        "trial": 6,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 1090,
+        "contact_1_0_0": 4,
+        "subject": "s030",
+        "condition": "wc",
+        "trial": 2,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 1246,
+        "contact_1_0_0": 4,
+        "subject": "s035",
+        "condition": "wc",
+        "trial": 3,
+        "side": "L",
+        "reason": "toes cut off at the far end of the walkway"
+      },
+      {
+        "trial_id": 1562,
+        "contact_1_0_0": 10,
+        "subject": "s044",
+        "condition": "ws",
+        "trial": 10,
+        "side": "R",
+        "reason": "toes cut off at the far end of the walkway"
+      },
+      {
+        "trial_id": 1587,
+        "contact_1_0_0": 2,
+        "subject": "s045",
+        "condition": "ws",
+        "trial": 4,
+        "side": "L",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 1676,
+        "contact_1_0_0": 2,
+        "subject": "s048",
+        "condition": "wf",
+        "trial": 10,
+        "side": "L",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 1800,
+        "contact_1_0_0": 4,
+        "subject": "s052",
+        "condition": "wf",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 1877,
+        "contact_1_0_0": 2,
+        "subject": "s055",
+        "condition": "rc",
+        "trial": 5,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2068,
+        "contact_1_0_0": 5,
+        "subject": "s060",
+        "condition": "wc",
+        "trial": 1,
+        "side": "L",
+        "reason": "toes cut off at the far end of the walkway"
+      },
+      {
+        "trial_id": 2307,
+        "contact_1_0_0": 4,
+        "subject": "s067",
+        "condition": "rc",
+        "trial": 4,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2312,
+        "contact_1_0_0": 4,
+        "subject": "s067",
+        "condition": "rc",
+        "trial": 9,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2313,
+        "contact_1_0_0": 1,
+        "subject": "s067",
+        "condition": "rc",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2313,
+        "contact_1_0_0": 3,
+        "subject": "s067",
+        "condition": "rc",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2333,
+        "contact_1_0_0": 4,
+        "subject": "s067",
+        "condition": "wf",
+        "trial": 9,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2637,
+        "contact_1_0_0": 2,
+        "subject": "s076",
+        "condition": "rc",
+        "trial": 6,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2641,
+        "contact_1_0_0": 1,
+        "subject": "s076",
+        "condition": "rc",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2641,
+        "contact_1_0_0": 3,
+        "subject": "s076",
+        "condition": "rc",
+        "trial": 10,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2679,
+        "contact_1_0_0": 1,
+        "subject": "s077",
+        "condition": "wc",
+        "trial": 6,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2921,
+        "contact_1_0_0": 2,
+        "subject": "s084",
+        "condition": "wc",
+        "trial": 1,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2924,
+        "contact_1_0_0": 5,
+        "subject": "s084",
+        "condition": "wc",
+        "trial": 4,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2928,
+        "contact_1_0_0": 4,
+        "subject": "s084",
+        "condition": "wc",
+        "trial": 8,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2935,
+        "contact_1_0_0": 4,
+        "subject": "s084",
+        "condition": "wf",
+        "trial": 5,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 2937,
+        "contact_1_0_0": 4,
+        "subject": "s084",
+        "condition": "wf",
+        "trial": 7,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 3018,
+        "contact_1_0_0": 3,
+        "subject": "s087",
+        "condition": "rc",
+        "trial": 6,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 3021,
+        "contact_1_0_0": 3,
+        "subject": "s087",
+        "condition": "rc",
+        "trial": 9,
+        "side": "R",
+        "reason": "loads an outermost sensor column (x = 0 or 63)"
+      },
+      {
+        "trial_id": 3030,
+        "contact_1_0_0": 5,
+        "subject": "s087",
+        "condition": "wc",
+        "trial": 7,
+        "side": "R",
+        "reason": "toes cut off at the far end of the walkway"
+      }
+    ],
+    "excluded_note": "contact_1_0_0 is the contact number in 1.0.0 and 1.1.0. In the 23 trials where an excluded contact preceded others, the later contacts move up, so their 1.0.0 (trial_id, contact) keys do not match 1.1.1. Footprint numbers shift in the 26 walking groups that lost a contact; in s022 ws R and s084 wc R the excluded contact was the registration template, so every image in those groups changed. All other footprint images are identical to 1.0.0, although some carry new contact numbers. The toe and heel cases reach row 351 or row 2 with the toes or heel missing compared with the participant's other contacts. Kept contacts that reach rows 1-3 or 350-351 are at least 0.93 of the participant's median footprint length for that task and side and show a complete heel and toes. The column rule is conservative: about half of its 40 contacts load the edge column lightly (under 0.5% of their pressure) and look nearly complete. Because excluded contacts can lie between kept ones, 16 trials have two consecutive same-side contacts; check sides before pairing consecutive contacts into steps.",
+    "boundaries": "A contact runs from the first to the last frame with any reading on that foot, at the platform's detection limit (5 kPa on one sensor, about 0.36 N). A 20 N force threshold, common with force plates, would shorten a median contact by 10-30 ms (2-4%) and remove about 0.05% of its impulse; the per-foot force in pressure_features gives thresholded times."
   },
   "joins": {
     "pressure": "Join pressure or pressure_features to trials on trial_id.",
@@ -124,8 +580,8 @@
         "trial_id"
       ],
       "rows": 3312,
-      "bytes": 54111,
-      "sha256": "2a7e8c2c6d7b32129b95a4b72af49ed51c83620f82019c771c0e92b6f3b85a8c",
+      "bytes": 54097,
+      "sha256": "709d738ad298d8ddbe4e6e7aa244019fcca8f53c161d43c4f70cac3b39946c64",
       "columns": {
         "trial_id": {
           "type": "uint16",
@@ -313,9 +769,9 @@
         "y",
         "x"
       ],
-      "rows": 112590395,
-      "bytes": 124803423,
-      "sha256": "c86405c988ad74fbdce7bbd6b036cdf1ac26d9f0def3c0bcfa7ed7fc23ead67c",
+      "rows": 112277664,
+      "bytes": 124404936,
+      "sha256": "92936dc336c05305545e1540d78143f66e84b4c1517bebde0b1f71be06a44e8e",
       "columns": {
         "trial_id": {
           "type": "uint16",
@@ -354,8 +810,8 @@
         "frame"
       ],
       "rows": 883555,
-      "bytes": 49686627,
-      "sha256": "7f04830885b1127b72888492680a6272d8f92b991cac6b4b91e3d8fabc7bc5f7",
+      "bytes": 49566265,
+      "sha256": "e3b0b19945bbb221c2a8bde679a3d3610c57c19cd59fd62e25e120de613068d8",
       "columns": {
         "trial_id": {
           "type": "uint16",
@@ -451,9 +907,9 @@
         "trial_id",
         "contact"
       ],
-      "rows": 14625,
-      "bytes": 408543,
-      "sha256": "ad4e3c10a8e315aebacf2ceadcb3527f9de0bb1b64f0dbefca18fe1d6f80c565",
+      "rows": 14575,
+      "bytes": 427860,
+      "sha256": "b8278a6326fb2effff6175fee89f59f5a27e315984a209f84ab6f183ec9f479d",
       "columns": {
         "trial_id": {
           "type": "uint16",
@@ -512,7 +968,7 @@
         },
         "strike_index": {
           "type": "double",
-          "description": "Center of pressure on the first loaded frame, measured along y from the posterior edge of the contact footprint, as a fraction of the footprint length (0 heel, 1 toe).",
+          "description": "Center of pressure at onset, the first frame with at least 20 N on the foot, measured along y from the posterior edge of the contact footprint, as a fraction of the footprint length (0 heel, 1 toe).",
           "unit": "1"
         }
       }
@@ -521,16 +977,16 @@
       "path": "features/contact_maps.parquet",
       "zenodo_filename": "features_contact_maps.parquet",
       "format": "parquet",
-      "description": "Peak pressure and pressure-time integral at each sensor during each gait contact",
+      "description": "Peak pressure and pressure-time integral at each loaded sensor during each gait contact",
       "primary_key": [
         "trial_id",
         "contact",
         "y",
         "x"
       ],
-      "rows": 3120511,
-      "bytes": 9844420,
-      "sha256": "a58541b33d2391167f0432db483b419364ea3edb95392378dc5946c4381b2129",
+      "rows": 3109925,
+      "bytes": 9385728,
+      "sha256": "3e28e9cc34806a23b619be2bfbd313e568ad3730f5a75f00c6ddcc25dc71949b",
       "columns": {
         "trial_id": {
           "type": "uint16",
@@ -564,15 +1020,15 @@
       "path": "features/standing_maps.parquet",
       "zenodo_filename": "features_standing_maps.parquet",
       "format": "parquet",
-      "description": "Peak pressure and pressure-time integral at each sensor during quiet standing",
+      "description": "Peak pressure and pressure-time integral at each loaded sensor during quiet standing",
       "primary_key": [
         "trial_id",
         "y",
         "x"
       ],
       "rows": 25342,
-      "bytes": 79684,
-      "sha256": "8ffd7ad85f4f70e5cc0f6ee26fed19e92ce5b6879dbd438e952d67462ccebeeb",
+      "bytes": 78102,
+      "sha256": "88fad2de9e8ed3ba2ebc751ae4c623312268e251545882e7d0cbf409f1a14e24",
       "columns": {
         "trial_id": {
           "type": "uint16",
@@ -615,9 +1071,9 @@
         "y",
         "x"
       ],
-      "rows": 4222237,
-      "bytes": 41039759,
-      "sha256": "22c647d763961b9361c01ff3d69b9c5a8fe714ca64cb89e250740d3b77aa2510",
+      "rows": 4212085,
+      "bytes": 40942158,
+      "sha256": "f108f8170f59bde17f79e2babf3c3fe371439c6af4e0457da26ba5873c7292c4",
       "columns": {
         "subject": {
           "type": "string",
@@ -674,12 +1130,13 @@
       "sha256": "28828cbb634dcbe5aa09c51f3d29106c01656f5d327493c9498dd7e4510dbbdf"
     }
   },
-  "changes": "1.1.0 adds features/contact_maps.parquet, features/standing_maps.parquet and the contacts.strike_index column. All other files are byte-identical to 1.0.0.",
+  "changes": "Relative to 1.0.0, 1.1.1 excludes 50 truncated gait contacts with their sensor readings (gait_contacts.excluded), so trials.n_cells, frame features, later contact numbers in the affected trials and footprint numbers in the 26 affected walking groups follow from the remaining readings, and it adds features/contact_maps.parquet, features/standing_maps.parquet and contacts.strike_index (20 N onset). Relative to 1.1.0, which kept all 1.0.0 contacts and used the first loaded frame as strike onset, 1.1.1 supersedes those tables. scans.zip is byte-identical to 1.0.0.",
   "pressure_maps": {
     "peak_pressure": "Maximum reading at each sensor over the interval, in kPa.",
     "pressure_time_integral": "Sum of each sensor's readings over the interval divided by trials.frequency_hz, in kPa s. Unloaded frames count as zero pressure.",
     "mean_pressure": "Not stored: pressure_time_integral divided by contacts.contact_time for a gait contact or by trials.duration_s for quiet standing.",
     "gait_interval": "The contact's frames [start_frame, stop_frame) and only the contact's foot.",
-    "standing_interval": "All 100 frames of the quiet-standing trial and both feet, each sensor labelled by foot."
+    "standing_interval": "All 100 frames of the quiet-standing trial and both feet, each sensor labelled by foot.",
+    "sparsity": "Each row is one sensor loaded during the interval. Omitted sensors carry no load."
   }
 }

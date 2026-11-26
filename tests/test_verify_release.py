@@ -25,8 +25,10 @@ def verifier(monkeypatch):
     monkeypatch.setattr(
         verify_release, "EXPECTED_COVERAGE", (2, 2, 0, 4, 2, 2), raising=False
     )
-    # These synthetic releases carry their own manifest instead of the PPDS 1.0.0 dictionary.
+    # These synthetic releases carry their own manifest instead of the distributed dictionary.
     monkeypatch.setattr(verify_release, "EXPECTED_METADATA", None)
+    # Their 1 kPa readings are far below the 20 N strike onset, so the first loaded frame is the onset.
+    monkeypatch.setattr(verify_release, "STRIKE_ONSET_N", 0)
     return verify_release.verify
 
 
@@ -190,7 +192,7 @@ def test_manifest_must_match_the_distributed_dictionary(tmp_path, resources, ver
     # An edited table with an edited manifest is consistent with itself, but not with the reference.
     resources["trials"]["rows"] += 1
     write_manifest(tmp_path, resources)
-    with pytest.raises(ValueError, match="differs from the PPDS 1.1.0 dictionary"):
+    with pytest.raises(ValueError, match="differs from the PPDS 1.1.1 dictionary"):
         verifier(tmp_path)
 
 
@@ -200,7 +202,7 @@ def test_verifier_uses_the_distributed_dictionary_by_default(monkeypatch):
     from scripts import verify_release
 
     assert verify_release.EXPECTED_METADATA is REFERENCE
-    assert REFERENCE == json.loads((ROOT / "src/ppds/release_1_1_0.json").read_text(encoding="utf-8"))
+    assert REFERENCE == json.loads((ROOT / "src/ppds/release_1_1_1.json").read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("name", ["trials", "pressure", "contacts", "contact_maps", "scans"])

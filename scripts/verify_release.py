@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 from reader_data import Release
 
 from ppds import dataset
+from ppds.maps import STRIKE_ONSET_N
 from ppds.paths import local_data_dir
 from ppds.release_layout import (
     PRIVATE_REPORT_PATHS,
@@ -23,6 +24,7 @@ from ppds.release_layout import (
 )
 
 EXPECTED_COVERAGE = (95, 3312, 95, 883555, 3312, 3312)
+LAST_ROW = dataset.NROWS - 1
 # The expected sizes, checksums and row counts come from the dictionary shipped with the
 # toolkit, not from the download, so edited files with a matching edited manifest fail.
 EXPECTED_METADATA = REFERENCE
@@ -52,7 +54,7 @@ def pressure_moments(con, reading_count):
             SELECT trial_id, frame,
                    CASE WHEN grouping(side) = 1 THEN 'both' ELSE side END AS support,
                    count(*) AS cells, list_unique(list(y::INTEGER * 64 + x)) AS unique_cells,
-                   count(*) FILTER (WHERE y BETWEEN 0 AND 352 AND x BETWEEN 0 AND 63
+                   count(*) FILTER (WHERE y BETWEEN 0 AND {LAST_ROW} AND x BETWEEN 0 AND 63
                                       AND value BETWEEN 1 AND 65535 AND side IN ('L', 'R')) AS valid_cells,
                    sum(value)::DOUBLE AS load, sum(x::BIGINT * value)::DOUBLE AS mx,
                    sum(y::BIGINT * value)::DOUBLE AS my, max(value) AS peak,
@@ -204,7 +206,7 @@ def verify_contacts(con):
 
 
 def verify_footprints(con):
-    invalid = con.execute("""
+    invalid = con.execute(f"""
         WITH walking AS (
             SELECT t.subject, t.condition, c.side, c.trial_id, c.contact, c.peak_pressure,
                    row_number() OVER (PARTITION BY t.subject, t.condition, c.side
@@ -214,7 +216,7 @@ def verify_footprints(con):
             SELECT subject, condition, side, footprint, min(trial_id) AS trial_id, min(contact) AS contact,
                    max(value) AS image_peak,
                    count(*) = count(*) FILTER (WHERE trial_id IS NOT NULL AND contact IS NOT NULL
-                                               AND y BETWEEN 0 AND 352 AND x BETWEEN 0 AND 63
+                                               AND y BETWEEN 0 AND {LAST_ROW} AND x BETWEEN 0 AND 63
                                                AND isfinite(value) AND value > 0) AS valid,
                    count(*) = list_unique(list(y::INTEGER * 64 + x)) AS unique_pixels,
                    min(trial_id) = max(trial_id) AND min(contact) = max(contact) AS single_event
@@ -233,18 +235,20 @@ def verify_footprints(con):
 
 def verify_strike_index(con):
     """Recompute each contact's strike index from the frame moments of its foot."""
-    invalid = con.execute("""
-        WITH extent AS (
-            SELECT c.trial_id, c.contact, min(m.ymin) AS ymin, max(m.ymax) AS ymax
+    invalid = con.execute(f"""
+        WITH frames AS (
+            SELECT c.trial_id, c.contact, m.frame, m.load, m.my, m.ymin, m.ymax
             FROM contacts c JOIN moments m
               ON m.trial_id = c.trial_id AND m.support = c.side
              AND m.frame >= c.start_frame AND m.frame < c.stop_frame
-            GROUP BY c.trial_id, c.contact
+        ), extent AS (
+            SELECT trial_id, contact, min(ymin) AS ymin, max(ymax) AS ymax,
+                   arg_min(my / load, frame) FILTER (WHERE load * (8.469 ^ 2 / 1000) >= {STRIKE_ONSET_N}) AS cop_y
+            FROM frames GROUP BY trial_id, contact
         )
         SELECT count(*) FROM contacts c LEFT JOIN extent e USING (trial_id, contact)
-        LEFT JOIN moments m ON m.trial_id = c.trial_id AND m.support = c.side AND m.frame = c.start_frame
-        WHERE e.ymin IS NULL OR m.load IS NULL OR NOT isfinite(c.strike_index)
-           OR NOT agrees(c.strike_index, (m.my / m.load - (e.ymin - 0.5)) / (e.ymax - e.ymin + 1))
+        WHERE e.cop_y IS NULL OR NOT isfinite(c.strike_index)
+           OR NOT agrees(c.strike_index, (e.cop_y - (e.ymin - 0.5)) / (e.ymax - e.ymin + 1))
     """).fetchone()[0]
     if invalid:
         raise ValueError(f"Strike index mismatch in {invalid} gait contacts")

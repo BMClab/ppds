@@ -1,6 +1,6 @@
 # Pressure coordinates and sampling
 
-Pressure time series use `(frame, y, x)`. The grid has 353 rows and 64 columns. In gait trials, `y` increases along the walkway in the direction of travel, and `x` increases toward the participant’s right when facing that direction. Use the `side` field for anatomical attribution, including crossing steps. The stance grid uses the platform sensor orientation. The center of sensor `(y=0, x=0)` is the origin. Multiply either sensor index by 8.469 to obtain its center position in millimetres.
+Pressure time series use `(frame, y, x)`. The grid has 353 rows and 64 columns. Two 176-row platforms lie end to end, and the Zebris software joins them with row 176, whose value is the mean of rows 175 and 177, rounded down to the 5 kPa step. Its readings count toward force, contact area and the pressure maps like any other row. In gait trials, `y` increases along the walkway in the direction of travel, and `x` increases toward the participant’s right when facing that direction. Use the `side` field for anatomical attribution, including crossing steps. The stance grid uses the platform sensor orientation. The center of sensor `(y=0, x=0)` is the origin. Multiply either sensor index by 8.469 to obtain its center position in millimetres.
 
 Gait maps show the walkway from above. When travel points up the page, increasing `x` points right. When travel points right, increasing `x` points down the page.
 

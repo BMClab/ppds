@@ -51,8 +51,8 @@ def _(mo):
 
     We will use trial 1 of participant s001 running at comfortable speed from the dataset
     (`data/pressure.parquet`), loaded with `ds.pressure`, which returns the pressure of every frame
-    as an array (frames, 353, 64) in kPa. Because the Zebris resolution is 0.1 N/cm² = 1 kPa, the
-    values are integers and are stored as 16-bit unsigned integers, saving memory. Here the array is
+    as an array (frames, 353, 64) in kPa. The recorded pressures are whole kPa in 5 kPa steps, so
+    they are stored as 16-bit unsigned integers, saving memory. Here the array is
     kept in the dataset convention (frame, y, x).
     """)
     return

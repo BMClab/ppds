@@ -45,8 +45,8 @@ TABLES = {
 }
 
 # Validate downloaded schemas against the dictionary distributed with the toolkit.
-VERSION = "1.1.0"
-REFERENCE = json.loads(files("ppds").joinpath("release_1_1_0.json").read_text(encoding="utf-8"))
+VERSION = "1.1.1"
+REFERENCE = json.loads(files("ppds").joinpath("release_1_1_1.json").read_text(encoding="utf-8"))
 SUBJECT_COLUMNS = tuple(REFERENCE["subject_columns"])
 TABLE_SCHEMAS = {
     name: pa.schema([

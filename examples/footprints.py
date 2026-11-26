@@ -215,23 +215,27 @@ def _(mo):
     mo.md(r"""
     ## Strike index and running contacts
 
-    Each contact row has a `strike_index`: the centre of pressure on the first loaded frame, measured from
-    the heel edge of the contact footprint as a fraction of its length (Cavanagh and Lafortune, 1980).
+    Each contact row has a `strike_index`: the centre of pressure at onset (the first frame with at least
+    20 N on the foot), measured from the heel edge of the contact footprint as a fraction of its length
+    (after Cavanagh and Lafortune, 1980).
     Walking landings concentrate near the heel. Running landings vary between participants, from rearfoot
-    to midfoot and forefoot.
+    to midfoot, with a few contacts further forward.
     """)
     return
 
 
 @app.cell
-def _(SPEEDS, ds, plt):
+def _(SPEEDS, ds, np, plt):
     _contacts = ds.contacts()
     _labels = {**{k: f"walking, {v}" for k, v in SPEEDS.items()}, "rc": "running"}
     _groups = [(_labels[_c], _contacts.loc[_contacts.condition == _c, "strike_index"]) for _c in _labels]
     _groups = [(_label, _values) for _label, _values in _groups if len(_values)]
     _fig, _ax = plt.subplots(figsize=(7, 3))
-    _ax.boxplot([_values for _, _values in _groups], tick_labels=[_label for _label, _ in _groups], vert=False)
-    _ax.set(xlabel="Strike index (0 heel, 1 toe)", xlim=(0, 1))
+    for _label, _values in _groups:
+        _sorted = np.sort(_values.to_numpy())
+        _ax.step(_sorted, np.arange(1, len(_sorted) + 1) / len(_sorted), where="post", label=_label)
+    _ax.set(xlabel="Strike index (0 heel, 1 toe)", ylabel="Fraction of contacts", xlim=(0, 1), ylim=(0, 1))
+    _ax.legend()
     _fig.tight_layout()
     _fig
     return
@@ -241,9 +245,9 @@ def _(SPEEDS, ds, plt):
 def _(mo):
     mo.md(r"""
     Registered footprints are released for walking only. `ds.registered_footprints(subject, condition, side)`
-    applies the same registration to the sensor readings of any gait condition; for walking it reproduces
-    `ds.footprints()` exactly. For running it is experimental: the alignment has not been checked
-    anatomically, and forefoot landings change the footprint shape. The images below are the selected
+    applies the same registration to the original-grid peak maps of any gait condition; for walking it
+    reproduces `ds.footprints()` exactly. For running it is experimental: the alignment has not been checked
+    anatomically, and the footprint shape depends on how the foot lands. The images below are the selected
     participant's running footprints for the selected foot, with the template outline in red.
     """)
     return

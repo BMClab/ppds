@@ -23,7 +23,7 @@ def _(mo):
     The Parquet files can be queried with SQL without loading them into memory, e.g. with
     [DuckDB](https://duckdb.org) (also available in R and other languages). `ds.connect()` returns a
     DuckDB connection with one view per table (`subjects`, `trials`, `pressure`, `pressure_features`,
-    `contacts`, `footprints`, `standing`). You can also query the physical files directly:
+    `contacts`, `contact_maps`, `standing_maps`, `footprints`, `standing`). You can also query the physical files directly:
 
     ```python
     import duckdb

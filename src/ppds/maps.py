@@ -3,7 +3,7 @@
 Each function takes a [frame, y, x] pressure series in kPa, such as one gait
 contact's frames from ``dataset.pressure(..., side=...)[start_frame:stop_frame]``
 or a quiet-standing trial. Unloaded frames and cells count as zero pressure.
-The PPDS 1.1.0 ``contact_maps`` and ``standing_maps`` tables store the peak and
+The PPDS 1.1.1 ``contact_maps`` and ``standing_maps`` tables store the peak and
 pressure-time integral computed this way; the mean pressure follows from them.
 """
 
@@ -39,22 +39,30 @@ def mean_pressure_map(frames):
     return _frames(frames).mean(axis=0, dtype=np.float64)
 
 
-def strike_index(frames):
-    """Return the strike index of one foot contact (Cavanagh and Lafortune, 1980).
+SENSOR_AREA_M2 = 8.469e-3**2
+STRIKE_ONSET_N = 20.0  # the onset force used for contacts.strike_index in PPDS 1.1.1
 
-    The center of pressure on the first frame, measured along y from the
-    posterior edge of the contact footprint, as a fraction of the footprint
-    length. The footprint spans the outer sensor edges of every cell loaded
-    during the frames. Gait y increases in the walking direction, so 0 is the
-    heel end and 1 the toe end. The first frame must carry load.
+
+def strike_index(frames, onset_force_n=STRIKE_ONSET_N, sensor_area_m2=SENSOR_AREA_M2):
+    """Return the strike index of one foot contact (after Cavanagh and Lafortune, 1980).
+
+    The center of pressure at onset, measured along y from the posterior edge
+    of the contact footprint, as a fraction of the footprint length. Onset is
+    the first frame whose vertical force (summed pressure times sensor area)
+    reaches onset_force_n; 0 selects the first loaded frame. The footprint spans
+    the outer sensor edges of every cell loaded during the frames. Gait y
+    increases in the walking direction, so 0 is the heel end and 1 the toe end.
     """
     frames = _frames(frames)
-    first = frames[0].astype(np.float64)
-    load = first.sum()
-    if load <= 0:
-        raise ValueError("The first frame of a contact must carry load")
     if (frames < 0).any():
         raise ValueError("Pressures must be nonnegative")
+    if not np.isfinite(onset_force_n) or onset_force_n < 0:
+        raise ValueError("Expected a nonnegative onset force in N")
+    force = frames.sum(axis=(1, 2), dtype=np.float64) * 1000 * sensor_area_m2
+    loaded = np.flatnonzero((force > 0) & (force >= onset_force_n))
+    if not len(loaded):
+        raise ValueError(f"No frame reaches the onset force of {onset_force_n} N")
+    onset = frames[loaded[0]].astype(np.float64)
     rows = np.nonzero(frames.max(axis=(0, 2)))[0]
-    cop_y = (first.sum(axis=1) * np.arange(first.shape[0])).sum() / load
+    cop_y = (onset.sum(axis=1) * np.arange(onset.shape[0])).sum() / onset.sum()
     return float((cop_y - (rows[0] - 0.5)) / (rows[-1] - rows[0] + 1))
