@@ -51,6 +51,8 @@ Gait pressure is sampled at 100 Hz. Each standing recording contributes the fina
 
 The dataset is distributed under CC0 1.0 and the toolkit under the [MIT license](LICENSE).
 
+Before publishing PPDS, we compared file formats and tools for reading the data and evaluated whether to provide a Python toolkit. We describe the alternatives we tested and the reasons for our choices in [Choosing how to publish a research dataset](https://github.com/BMClab/dataset-publication-study).
+
 ## How to cite
 
 Cite the dataset when you use the recordings or derived data. If you also use the Python toolkit or example notebooks, cite the software release alongside it.
