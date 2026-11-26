@@ -1114,13 +1114,25 @@ def _(force_by_activity, mpl, np, plot_style, plt, render_png):
         "Running": ("#008568", "s"),
     }
     with mpl.rc_context(plot_style):
-        _fig, _axes = plt.subplots(2, 1, figsize=(3.9, 6.6), sharex=True)
-        _fig.subplots_adjust(left=0.19, right=0.97, bottom=0.075, top=0.98, hspace=0.08)
         _weight = force_by_activity.body_weight_N
         _lo = 100 * np.floor(
             min(_weight.min(), force_by_activity.mean_force_N.min()) / 100
         )
         _hi = 100 * np.ceil(_weight.max() / 100)
+        _tops = {
+            _col: max(_hi, 100 * np.ceil(force_by_activity[_col].max() / 100))
+            for _col in ("mean_force_N", "peak_force_N")
+        }
+        # Equal newtons per inch on both axes, so the equality lines run at 45°:
+        # panel heights follow their force ranges over the shared x range.
+        _fig, _axes = plt.subplots(
+            2,
+            1,
+            figsize=(3.9, 8.6),
+            sharex=True,
+            gridspec_kw={"height_ratios": [_top - _lo for _top in _tops.values()]},
+        )
+        _fig.subplots_adjust(left=0.19, right=0.97, bottom=0.06, top=0.985, hspace=0.06)
         _groups = force_by_activity.groupby("activity")
         for _scatter, (_stat, _force_col, _letter) in zip(
             _axes,
@@ -1143,13 +1155,9 @@ def _(force_by_activity, mpl, np, plot_style, plt, render_png):
                     linewidth=0.3,
                     label=f"{_activity} (n = {len(_group)})",
                 )
-            _yhi = 100 * np.ceil(force_by_activity[_force_col].max() / 100)
-            _scatter.set(
-                xlim=(_lo, _hi),
-                ylim=(_lo, max(_hi, _yhi)),
-            )
+            _scatter.set(xlim=(_lo, _hi), ylim=(_lo, _tops[_force_col]))
             _scatter.set_ylabel(f"{_stat} force from pressure (N)", fontsize=10)
-            _scatter.set_box_aspect(1)
+            _scatter.set_aspect("equal")
             # Panel letter outside the top-left corner of the axes, level with its top.
             _scatter.text(
                 -0.25,

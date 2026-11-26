@@ -17,3 +17,5 @@ _site/
 .env
 .pages-data/
 .pages-build-*/
+# Figure downloads exported from the paper notebook
+/paper/ppds-figure-*.png
