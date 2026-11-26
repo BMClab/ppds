@@ -242,6 +242,9 @@ def build(site):
             page,
             f'{nav_start}{SOURCE_LINK} · <a href="{quote(source.name)}" download>Download .py</a></nav>',
         )
+        print(f"Published the saved {PAPER_PAGE}.")
+    else:
+        print(f"No saved {PAPER_PAGE}; the site omits the manuscript notebook.")
     print(f"Built {len(notebooks)} notebooks and {len(GUIDES)} guide pages.")
 
 

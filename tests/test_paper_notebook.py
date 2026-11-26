@@ -20,4 +20,7 @@ def test_saved_page_was_generated_from_this_notebook():
 
 def test_saved_page_has_no_cell_errors():
     # marimo still writes the page when a cell fails, storing the failure as an error output.
-    assert '"type": "error"' not in PAGE.read_text(encoding="utf-8"), f"{PAGE.name} has cell errors."
+    # Require data outputs too, so a change in marimo's serialisation cannot pass silently.
+    html = PAGE.read_text(encoding="utf-8")
+    assert '"type": "data"' in html, f"Cannot find cell outputs in {PAGE.name}."
+    assert '"type": "error"' not in html, f"{PAGE.name} has cell errors."
