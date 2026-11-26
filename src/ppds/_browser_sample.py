@@ -7,8 +7,8 @@ from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
 SOURCE = ("https://raw.githubusercontent.com/BMClab/ppds/"
-          "84c6c9111934e716177212af883230ea66c89866/pressure-sample.zip")
-SHA256 = "50b4387d2867d9dbe9abebc813566e60f76ad4f85aae5b5d5b7617333bd21650"
+          "fbb2f02d1b83acc82f606afaa64ea8169fe9d07b/notebook-assets/pressure-sample.zip")
+SHA256 = "52417208581f04de5cca1f0270fe6ec077cc83045d8944cc7b878ea7c50ca4e5"
 
 
 @lru_cache(maxsize=1)
