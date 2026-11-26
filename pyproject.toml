@@ -1,6 +1,6 @@
 [project]
 name = "ppds"
-version = "0.2.0"
+version = "0.2.1"
 description = "PPDS: plantar pressure recordings, pressure-derived features and 3D foot scans (code and notebooks)"
 readme = "README.md"
 license = "MIT"

@@ -1361,7 +1361,7 @@ wheels = [
 
 [[package]]
 name = "ppds"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
@@ -1772,7 +1772,7 @@ wheels = [
 
 [[package]]
 name = "reader-data"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "framework" }
 dependencies = [
     { name = "duckdb" },
