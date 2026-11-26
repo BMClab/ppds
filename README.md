@@ -15,6 +15,8 @@ uv sync --locked
 uv run marimo run examples/exploration.py
 ```
 
+To reproduce the Data Descriptor’s participant summaries, tables, figures and technical validation from the complete 1.1.1 release, open the [manuscript notebook](paper/data_descriptor.py) with `uv run --locked marimo edit paper/data_descriptor.py`. The full run takes several minutes. To view the outputs used in the article without running anything, open the [saved notebook page](https://bmclab.github.io/ppds/paper/data_descriptor.html), which records when it was generated.
+
 Use the same release in Python to read a comfortable-walking trial, its pressure features and its peak-pressure map.
 
 ```python

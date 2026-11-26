@@ -18,6 +18,8 @@ from markdown.treeprocessors import Treeprocessor
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = Path("examples/README.md")
 CATALOG_URL = "https://bmclab.github.io/ppds/examples/"
+# Saved output of the manuscript notebook, committed from the run behind the article.
+PAPER_PAGE = Path("paper/data_descriptor.html")
 SOURCE_LINK = '<a href="https://github.com/BMClab/ppds">Source on GitHub</a>'
 GUIDES = (
     Path("README.md"),
@@ -183,6 +185,11 @@ def build(site):
 
     (site / "notebooks").mkdir()
     (site / "edit").mkdir()
+    nav_start = (
+        '<nav aria-label="Notebook navigation" style="position:relative;z-index:1;'
+        'padding:.5rem 1rem;background:Canvas;color:CanvasText;font:1rem system-ui">'
+        '<a href="../index.html">PPDS home</a> · '
+    )
     for source in sorted(notebooks):
         page = site / pages[source]
         editor = site / "edit" / page.name
@@ -209,23 +216,32 @@ def build(site):
         )
         shutil.copyfile(ROOT / source, page.with_suffix(".py"))
         blob = f"BMClab/ppds/blob/{revision}/{quote(source.as_posix())}"
-        nav_start = (
-            '<nav aria-label="Notebook navigation" style="position:relative;z-index:1;'
-            'padding:.5rem 1rem;background:Canvas;color:CanvasText;font:1rem system-ui">'
-            '<a href="../index.html">PPDS home</a> · <a href="../examples/index.html">All examples</a> · '
-        )
         nav = (
-            f'{nav_start}{SOURCE_LINK} · '
+            f'{nav_start}<a href="../examples/index.html">All examples</a> · {SOURCE_LINK} · '
             f'<a href="../edit/{quote(editor.name)}">Edit in browser</a> · '
             f'<a href="https://molab.marimo.io/github/{blob}">Open in molab</a> · '
             f'<a href="https://marimo.app/github.com/{blob}">Open in marimo.app</a> · '
             f'<a href="{quote(source.name)}" download>Download .py</a></nav>'
         )
-        editor_nav = f'{nav_start}<a href="../notebooks/{quote(page.name)}">Saved output</a></nav>'
+        editor_nav = (
+            f'{nav_start}<a href="../examples/index.html">All examples</a> · '
+            f'<a href="../notebooks/{quote(page.name)}">Saved output</a></nav>'
+        )
         add_navigation(page, nav)
         # Fit the absolutely positioned editor beneath the site's navigation.
         layout = "<style>body{display:flex;flex-direction:column;height:100dvh}#root{position:relative;flex:1;min-height:0}</style>"
         add_navigation(editor, editor_nav, layout)
+    if (ROOT / PAPER_PAGE).is_file():
+        # Publish the committed copy instead of re-running it, so the page keeps the article's run record.
+        page = site / PAPER_PAGE
+        source = PAPER_PAGE.with_suffix(".py")
+        page.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / PAPER_PAGE, page)
+        shutil.copyfile(ROOT / source, page.with_suffix(".py"))
+        add_navigation(
+            page,
+            f'{nav_start}{SOURCE_LINK} · <a href="{quote(source.name)}" download>Download .py</a></nav>',
+        )
     print(f"Built {len(notebooks)} notebooks and {len(GUIDES)} guide pages.")
 
 

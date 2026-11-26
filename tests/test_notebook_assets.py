@@ -45,13 +45,13 @@ def test_stored_wheels_match_fresh_build(tmp_path):
             assert stored[member] == payload, f"Rebuild {name}: {member} changed"
 
 
-def test_example_notebooks_pin_the_stored_wheels(monkeypatch):
+def test_notebooks_pin_the_stored_wheels(monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT))
     from scripts.build_pages import is_notebook
 
     expected = {p.name.split("-")[0].replace("_", "-"): p.name for p in ASSETS.glob("*.whl")}
     common = None
-    for notebook in sorted((ROOT / "examples").glob("*.py")):
+    for notebook in sorted([*(ROOT / "examples").glob("*.py"), *(ROOT / "paper").glob("*.py")]):
         if not is_notebook(notebook):
             continue
         block = re.search(r"^# /// script\n(.*?)^# ///$", notebook.read_text(), re.MULTILINE | re.DOTALL)

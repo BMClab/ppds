@@ -107,3 +107,34 @@ def test_windows_paths_generate_portable_page_urls(monkeypatch):
 
     site = PureWindowsPath("C:/Documents/PPDS")
     assert relative_url(site / "notebooks/ação 1.html", site / "examples") == "../notebooks/a%C3%A7%C3%A3o%201.html"
+
+
+def test_pages_publishes_the_saved_paper_page_without_running_it(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
+    from scripts import build_pages
+
+    examples = tmp_path / "examples"
+    examples.mkdir()
+    (examples / "demo.py").write_text("import marimo\napp = marimo.App()\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text("# PPDS", encoding="utf-8")
+    paper = tmp_path / "paper"
+    paper.mkdir()
+    (paper / "data_descriptor.py").write_text("import marimo\napp = marimo.App()\n", encoding="utf-8")
+    saved = "<html><head></head><body>Run started on 2026-11-26 01:16 UTC</body></html>"
+    (paper / "data_descriptor.html").write_text(saved, encoding="utf-8")
+    monkeypatch.setattr(build_pages, "ROOT", tmp_path)
+    monkeypatch.setattr(build_pages, "GUIDES", [Path("README.md")])
+    exported = []
+
+    def export(args, **kwargs):
+        exported.append(Path(args[-1]))
+        Path(args[-1]).write_text("<html><head></head><body></body></html>", encoding="utf-8")
+
+    monkeypatch.setattr(build_pages.subprocess, "run", export)
+    site = tmp_path / "site"
+    build_pages.build(site)
+    assert all(path.parent.name != "paper" for path in exported)
+    html = (site / "paper/data_descriptor.html").read_text(encoding="utf-8")
+    assert "Run started on 2026-11-26 01:16 UTC" in html and 'href="../index.html"' in html
+    assert 'href="data_descriptor.py" download' in html
+    assert (site / "paper/data_descriptor.py").read_text() == (paper / "data_descriptor.py").read_text()
