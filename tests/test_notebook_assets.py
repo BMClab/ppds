@@ -51,7 +51,7 @@ def test_notebooks_pin_the_stored_wheels(monkeypatch):
 
     expected = {p.name.split("-")[0].replace("_", "-"): p.name for p in ASSETS.glob("*.whl")}
     common = None
-    for notebook in sorted([*(ROOT / "examples").glob("*.py"), *(ROOT / "paper").glob("*.py")]):
+    for notebook in sorted([*(ROOT / "examples").rglob("*.py"), *(ROOT / "paper").glob("*.py")]):
         if not is_notebook(notebook):
             continue
         block = re.search(r"^# /// script\n(.*?)^# ///$", notebook.read_text(), re.MULTILINE | re.DOTALL)

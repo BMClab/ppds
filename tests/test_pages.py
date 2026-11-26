@@ -16,7 +16,10 @@ def test_pages_rebuilds_executes_and_indexes_examples(tmp_path, monkeypatch):
     examples = tmp_path / "examples"
     examples.mkdir()
     (tmp_path / "README.md").write_text("# PPDS\n\n[Examples](examples/README.md)")
-    (examples / "README.md").write_text("# Examples\n\n[Demo](demo.py)")
+    dashboard = tmp_path / build_pages.DASHBOARD_PAGE
+    dashboard.parent.mkdir()
+    dashboard.write_text("<html><body>Browser dashboard</body></html>")
+    (examples / "README.md").write_text("# Examples\n\n[Demo](demo.py) · [Dashboard](dashboard/dashboard.html)")
     (examples / "helper.py").write_text('"""Docs may mention marimo.App()."""')
     template = """import marimo
 
@@ -32,6 +35,8 @@ def _():
     demo.write_text(template.format(code='print("saved", 6 * 7)'))
     build_pages.main()
     site = tmp_path / "_site"
+    assert (site / build_pages.DASHBOARD_PAGE).read_bytes() == dashboard.read_bytes()
+    assert 'href="dashboard/dashboard.html"' in (site / "examples/index.html").read_text()
     assert 'href="examples/index.html"' in (site / "index.html").read_text()
     page = site / "notebooks/demo.html"
     assert "saved 42" in page.read_text()

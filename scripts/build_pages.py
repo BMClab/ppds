@@ -20,6 +20,7 @@ CATALOG = Path("examples/README.md")
 CATALOG_URL = "https://bmclab.github.io/ppds/examples/"
 # Saved output of the manuscript notebook, committed from the run behind the article.
 PAPER_PAGE = Path("paper/data_descriptor.html")
+DASHBOARD_PAGE = Path("examples/dashboard/dashboard.html")
 SOURCE_LINK = '<a href="https://github.com/BMClab/ppds">Source on GitHub</a>'
 GUIDES = (
     Path("README.md"),
@@ -163,6 +164,11 @@ def build(site):
     pages.update(
         {n: Path("notebooks") / n.with_suffix(".html").name for n in notebooks}
     )
+    if (ROOT / DASHBOARD_PAGE).is_file():
+        output = site / DASHBOARD_PAGE
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / DASHBOARD_PAGE, output)
+        pages[DASHBOARD_PAGE] = DASHBOARD_PAGE
 
     revision = quote(os.environ.get("GITHUB_SHA") or "main", safe="")
     for guide in GUIDES:

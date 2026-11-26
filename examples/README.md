@@ -18,6 +18,12 @@ uv run marimo run examples/scans.py
 
 Local runs use the release in `PPDS_DATA` or the checkout’s `data/` directory when available. Otherwise they read Zenodo record `24544934` automatically. To select that record even with a local release configured, append `-- --zenodo 24544934`. [Dataset on Zenodo](https://doi.org/10.5281/zenodo.24544934)
 
+The [plantar pressure dashboard](dashboard/dashboard.html) compares one pass or all trials for a participant and condition, with pressure maps, force and centre-of-pressure plots, foot scans and contact summaries. Open the HTML file in a browser with an internet connection. To run the Python version, use the following command from the repository root.
+
+```bash
+uv run --locked marimo run examples/dashboard/dashboard.py
+```
+
 | Notebook | What it shows |
 |---|---|
 | [participant_summary.py](participant_summary.py) | Participant characteristics, descriptive statistics and distributions, with one observation per participant |

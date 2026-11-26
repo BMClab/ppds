@@ -46,11 +46,12 @@ requires = ["uv_build>=0.13.5,<0.14.0"]
 build-backend = "uv_build"
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "framework/tests"]
+testpaths = ["tests", "framework/tests", "examples/dashboard"]
 
 [tool.ruff.lint.per-file-ignores]
 # marimo displays the final expression and generates explicit cell returns.
 "{examples,paper}/*.py" = ["B018", "PLR1711"]
+"examples/dashboard/dashboard.py" = ["B018", "PLR1711"]
 
 [dependency-groups]
 dev = [
